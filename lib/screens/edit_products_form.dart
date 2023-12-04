@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';
@@ -58,7 +60,10 @@ class _EditProductFormState extends State<EditProductForm> {
     _typeController = TextEditingController(text: widget.productSubmission.type);
     _ecrController = TextEditingController(text: widget.productSubmission.ecr);
     _listpriceController =TextEditingController(text: widget.productSubmission.listprice?.toString() ?? '');
-    _commentsController = TextEditingController(text: widget.productSubmission.comments);
+    String decodedComments = widget.productSubmission.comments != null
+        ? utf8.decode(base64Decode(widget.productSubmission.comments!))
+        : '';
+    _commentsController = TextEditingController(text: decodedComments);
     _activeController = TextEditingController(text: widget.productSubmission.active);
     _labelDescController = TextEditingController(text: widget.productSubmission.labelDesc);
     _productSpecController = TextEditingController(text: widget.productSubmission.productSpec);
@@ -78,6 +83,8 @@ class _EditProductFormState extends State<EditProductForm> {
     _instGuideController = TextEditingController(text: widget.productSubmission.instGuide);
 
     // ... Initialize other controllers as needed
+
+
   }
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _dateController = TextEditingController();
@@ -659,6 +666,7 @@ class _EditProductFormState extends State<EditProductForm> {
               onPressed: () {
                 // Update the product details here
                 // For example, send a PUT request to your API
+                String encodedComments = base64Encode(utf8.encode(_commentsController.text));
                 final productNo = widget.productSubmission.productno ?? (throw 'Product No is null');
                 final UpdateProductSubmission = ProductSubmission(
                   rev: _emptyToNull(_revController.text),
@@ -669,7 +677,7 @@ class _EditProductFormState extends State<EditProductForm> {
                   type: _emptyToNull(_typeController.text),
                   ecr: _emptyToNull(_ecrController.text),
                   listprice: _emptyToNull(_listpriceController.text),
-                  comments: _emptyToNull(_commentsController.text),
+                  comments: _emptyToNull(encodedComments),
                   active: _emptyToNull(_activeController.text),
                   labelDesc: _emptyToNull(_labelDescController.text),
                   productSpec: _emptyToNull(_productSpecController.text),

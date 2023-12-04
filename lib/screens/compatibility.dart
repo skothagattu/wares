@@ -20,10 +20,12 @@ class _CompatFormState extends State<CompatForm> {
   String? _selectedModel;
   String? _selectedProductType;
   List<ExtendedCompatModel> _extendedCompatProducts = [];
-  Map<int, OverlayEntry?> _commentOverlays = {};
-  Map<int, bool> _activeCommentIcons = {};
-  final LayerLink _layerLink = LayerLink();
-  Map<int, LayerLink> _layerLinks = {};
+  int? _selectedCommentIndex;
+  Map<int, OverlayEntry> _commentOverlays = {};
+  Map<int, GlobalKey> _iconKeys = {};
+  Map<int, bool> _isCommentOpen = {};
+
+
   @override
   void initState() {
     super.initState();
@@ -76,59 +78,96 @@ class _CompatFormState extends State<CompatForm> {
     return extendedProducts;
   }
 
+  void _clearForm() {
+    setState(() {
+      _selectedModel = null;
+      _selectedProductType = null;
+      _extendedCompatProducts.clear();
+      // Reset other state variables as needed
+    });
+  }
+
+  @override
+  void dispose() {
+    // Remove all overlays when the widget is disposed
+    _commentOverlays.values.forEach((overlay) {
+      overlay.remove();
+    });
+    super.dispose();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double formWidth = screenWidth * 0.9;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Image.asset('images/logo_cmi.png'),
-        centerTitle: true,
-        leading: BackButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedCommentIndex = null;
+        });
+      },
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Image.asset('images/logo_cmi.png'),
+          centerTitle: true,
+          leading: BackButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
         ),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 10, left: 40, right: 40, bottom: 50),
-          child: Container(
-            width: formWidth,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.5),
-                  spreadRadius: 5,
-                  blurRadius: 7,
-                  offset: Offset(0, 3),
-                )
-              ],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Center(child: Text("PRODUCT COMPATIBILITY", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
-                  SizedBox(height: 20),
-                  _buildDropdown('Select Model', _models, (value) {
-                    setState(() {
-                      _selectedModel = value;
-                      _fetchProducts();
-                    });
-                  }),
-                  _buildDropdown('Select Product Type', _productTypes, (value) {
-                    setState(() {
-                      _selectedProductType = value;
-                      _fetchProducts();
-                    });
-                  }),
-                  SizedBox(height: 20),
-                  _buildDataTable(),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 10, left: 40, right: 40, bottom: 50),
+            child: Container(
+              width: formWidth,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.black, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 5,
+                    blurRadius: 7,
+                    offset: Offset(0, 3),
+                  )
                 ],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Center(child: Text("PRODUCT COMPATIBILITY", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(child: _buildDropdown('Select Model', _models, (value) {
+                          setState(() {
+                            _selectedModel = value;
+                            _fetchProducts();
+                          });
+                        })),
+                        SizedBox(width: 10),
+                        Expanded(child: _buildDropdown('Select Product Type', _productTypes, (value) {
+                          setState(() {
+                            _selectedProductType = value;
+                            _fetchProducts();
+                          });
+                        })),
+                        ElevatedButton(
+                          onPressed: _clearForm,
+                          child: Text('Clear'),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
+                    _buildDataTable(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -136,6 +175,7 @@ class _CompatFormState extends State<CompatForm> {
       ),
     );
   }
+
 
   Widget _buildDropdown(String hint, List<String> items, ValueChanged<String?> onChanged) {
     return DropdownButton<String>(
@@ -184,57 +224,66 @@ class _CompatFormState extends State<CompatForm> {
       ],
       rows: List<DataRow>.generate(
         _extendedCompatProducts.length,
-            (index) => DataRow(cells: <DataCell>[
-          DataCell(_buildTextCell(_extendedCompatProducts[index].productNo)),
-          DataCell(_buildTextCell(_extendedCompatProducts[index].description ?? '')),
-          DataCell(_buildTextCell(_extendedCompatProducts[index].configuration ?? '')),
-          DataCell(
-            Builder(
-              builder: (cellContext) => _buildCommentButtonCell(_extendedCompatProducts[index].comments ?? '', index, cellContext),
-            ),
-          ),
-          DataCell(_buildTextCell(_extendedCompatProducts[index].notes)),
-        ]),
+            (index) => DataRow(
+          cells: <DataCell>[
+            DataCell(_buildTextCell(_extendedCompatProducts[index].productNo)),
+            DataCell(_buildTextCell(_extendedCompatProducts[index].description ?? '')),
+            DataCell(_buildTextCell(_extendedCompatProducts[index].configuration ?? '')),
+            DataCell(_buildCommentButtonCell(_extendedCompatProducts[index].comments ?? '', index)),
+            DataCell(_buildTextCell(_extendedCompatProducts[index].notes ?? '')),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCommentButtonCell(String base64Comment, int index, BuildContext cellContext) {
+/*  Widget _buildCommentButtonCell(String base64Comment, int index, BuildContext cellContext) {
     return IconButton(
       icon: Icon(Icons.comment, color: _activeCommentIcons[index] == true ? Colors.blue : null),
       onPressed: () => _toggleCommentOverlay(base64Comment, index, cellContext),
     );
-  }
 
-  void _toggleCommentOverlay(String base64Comment, int index, BuildContext cellContext) {
-    if (_commentOverlays[index] != null) {
+  }*/
+
+  Widget _buildCommentButtonCell(String base64Comment, int index) {
+    _iconKeys.putIfAbsent(index, () => GlobalKey());
+    bool isCommentVisible = _isCommentOpen[index] ?? false;
+
+    return IconButton(
+      key: _iconKeys[index],
+      icon: Icon(Icons.comment, color: isCommentVisible ? Colors.blue : null),
+      onPressed: () => _toggleCommentOverlay(base64Comment, index),
+    );
+  }
+  void _toggleCommentOverlay(String base64Comment, int index) {
+    if (_isCommentOpen[index] == true) {
+      // Hide the comment overlay
       _commentOverlays[index]?.remove();
-      _commentOverlays[index] = null;
-      _activeCommentIcons[index] = false;
+      _commentOverlays.remove(index);
     } else {
-      _activeCommentIcons[index] = true;
-      String decodedComment = decodeBase64String(base64Comment);
-      OverlayEntry overlayEntry = _createCommentOverlayEntry(decodedComment, cellContext, index);
-      Overlay.of(cellContext)?.insert(overlayEntry);
+      // Show the comment overlay
+      final RenderBox renderBox = _iconKeys[index]?.currentContext!.findRenderObject() as RenderBox;
+      final offset = renderBox.localToGlobal(Offset.zero);
+      final overlayEntry = _createOverlayEntry(base64Comment, offset, renderBox.size, index);
       _commentOverlays[index] = overlayEntry;
+      Overlay.of(context)!.insert(overlayEntry);
     }
-    setState(() {}); // Update the UI
+    setState(() {
+      _isCommentOpen[index] = !(_isCommentOpen[index] ?? false);
+    });
   }
 
-  OverlayEntry _createCommentOverlayEntry(String decodedComment, BuildContext cellContext, int index) {
-    RenderBox renderBox = cellContext.findRenderObject() as RenderBox;
-    var offset = renderBox.localToGlobal(Offset.zero);
-
+  OverlayEntry _createOverlayEntry(String base64Comment, Offset offset, Size size, int index) {
     return OverlayEntry(
       builder: (context) => Positioned(
-        top: offset.dy,
-        left: offset.dx - 200, // Adjust this value as needed
+        left: offset.dx,
+        top: offset.dy + size.height, // Position just below the icon button
         child: Material(
           elevation: 4.0,
           child: Container(
-            width: 200, // Adjust width as needed
             padding: EdgeInsets.all(8.0),
-            child: Text(decodedComment),
+            color: Colors.white,
+            child: Text(decodeBase64String(base64Comment)),
           ),
         ),
       ),

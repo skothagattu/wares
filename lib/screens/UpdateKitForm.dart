@@ -18,7 +18,6 @@ class _UpdateKitFormState extends State<UpdateKitForm> {
   void initState() {
     super.initState();
     // Initialize with one row
-    _addNewComponentRow();
   }
 
 
@@ -31,11 +30,7 @@ class _UpdateKitFormState extends State<UpdateKitForm> {
         "quantity": TextEditingController(),
         "listPrice": TextEditingController(),
       };
-      if (isNew) {
-        newComponentControllers.add(controllerSet);
-      } else {
-        componentControllers.add(controllerSet);
-      }
+      newComponentControllers.add(controllerSet);
     });
   }
 
@@ -156,6 +151,14 @@ class _UpdateKitFormState extends State<UpdateKitForm> {
                       ElevatedButton(
                         onPressed: _handleSubmit,
                         child: Text('Submit'),
+                      ),
+                      SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () => fetchAndDisplayKitComponents(kitNumberController.text),
+                        child: Text('Refresh'),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.blue, // Optional: Style for the refresh button
+                        ),
                       ),
                       SizedBox(width: 10),
                       ElevatedButton(

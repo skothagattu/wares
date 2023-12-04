@@ -15,7 +15,7 @@ abstract class IKitBomRepository {
 }
 
 class KitBomRepository implements IKitBomRepository {
-  final _host = "http://localhost:81/Kits";
+  final _host = "http://10.89.2.137:86/Kits";
   final Map<String, String> _headers = {
     "Accept": "application/json",
     "content-type": "application/json",

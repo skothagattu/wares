@@ -36,6 +36,7 @@ class _SearchByProductFormState extends State<SearchByProductForm> {
 
 
   @override
+  @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     double formWidth = screenWidth * 0.6;
@@ -46,10 +47,7 @@ class _SearchByProductFormState extends State<SearchByProductForm> {
         child: Container(
           width: formWidth,
           decoration: BoxDecoration(
-            border: Border.all(
-              color: Colors.black,
-              width: 2,
-            ),
+            border: Border.all(color: Colors.black, width: 2),
             boxShadow: [
               BoxShadow(
                 color: Colors.grey.withOpacity(0.5),
@@ -64,35 +62,49 @@ class _SearchByProductFormState extends State<SearchByProductForm> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Center(child: Text("SEARCH BY PRODUCTS IN KIT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
+                Center(child: Text("SEARCH BY PRODUCT", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
                 SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(child:  TextField(
-                      controller: productNumberController,
-                      decoration: InputDecoration(labelText: 'Product Number'),
-                      onSubmitted: (_) => _fetchKitsByProductNo(),
+                    Expanded(
+                      child: TextField(
+                        controller: productNumberController,
+                        decoration: InputDecoration(labelText: 'Product Number'),
+                        onSubmitted: (_) => _fetchKitsByProductNo(),
+                      ),
                     ),
-                    ),
-                    SizedBox(height: 20),
+                    SizedBox(width: 10),
                     ElevatedButton(
                       onPressed: _fetchKitsByProductNo,
                       child: Text('Search Kits'),
                     ),
-
                   ],
                 ),
-
                 SizedBox(height: 20),
                 if (kits.isNotEmpty) _createKitsDataTable(),
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _clearForm,
-                  child: Text('Clear'),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.grey, // Optional: Style for the clear button
+                if (kits.isNotEmpty) ...[
+                  SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _fetchKitsByProductNo,
+                        child: Text('Refresh'),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.blue, // Optional: Style for the refresh button
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: _clearForm,
+                        child: Text('Clear'),
+                        style: ElevatedButton.styleFrom(
+                          primary: Colors.grey, // Optional: Style for the clear button
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -100,6 +112,7 @@ class _SearchByProductFormState extends State<SearchByProductForm> {
       ),
     );
   }
+
 
   Widget _createKitsDataTable() {
     return DataTable(

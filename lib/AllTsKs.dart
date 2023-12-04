@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:wares/repositories/KitBomRepository.dart';
@@ -57,10 +59,18 @@ class _AllTsKsState extends State<AllTsKs> {
   late TextEditingController instGuideController;
   List<KitBomItem> kitBomItems = [];
   final KitBomRepository kitBomRepository = KitBomRepository();
+  late FocusNode productNoFocusNode;
 
   @override
   void initState() {
     super.initState();
+    productNoFocusNode = FocusNode();
+    productNoFocusNode.addListener(() {
+      if (!productNoFocusNode.hasFocus) {
+        // Call the API here
+        fetchAndDisplayProductDetails(productNoController.text);
+      }
+    });
     productNoController = TextEditingController();
     revController = TextEditingController();
     descriptionController = TextEditingController();
@@ -88,22 +98,26 @@ class _AllTsKsState extends State<AllTsKs> {
     level6Controller = TextEditingController();
     level7Controller = TextEditingController();
     instGuideController = TextEditingController();
+
+
+
+
   }
-  fetchAndDisplayKitBomItems(String kitNo) async {
+ fetchAndDisplayKitBomItems(String kitNo) async {
     try {
       List<KitBomItem> items = await kitBomRepository.fetchKitBomItems(kitNo);
       if (items.isNotEmpty) {
         // Kit number exists in KitBom and has components
         setState(() {
           kitBomItems = items;
-          _isDataVisible = true;
+          _isDataVisible = true; // Set this to true to show the DataTable
         });
       } else {
         // Kit number does not exist in KitBom
         _clearForm(); // Clear all form fields
         setState(() {
           kitBomItems.clear();
-          _isDataVisible = false;
+          _isDataVisible = false; // Set this to false to hide the DataTable
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Kit number is not available in KitBom")),
@@ -114,7 +128,7 @@ class _AllTsKsState extends State<AllTsKs> {
         // Handle the case where the kit number does not exist in both ProductTable and KitBom
         _clearForm(); // Clear all form fields
         setState(() {
-          _isDataVisible = false;
+          _isDataVisible = false; // Set this to false to hide the DataTable
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Kit number does not exist")),
@@ -122,9 +136,13 @@ class _AllTsKsState extends State<AllTsKs> {
       } else {
         // Handle other errors
         print(e);
+        setState(() {
+          _isDataVisible = false; // Set this to false to hide the DataTable
+        });
       }
     }
   }
+
 
 
 
@@ -198,7 +216,7 @@ class _AllTsKsState extends State<AllTsKs> {
           typeController.text = product.type ?? '';
           ecrController.text = product.ecr ?? '';
           listpriceController.text = product.listprice.toString() ?? '';
-          commentsController.text = product.comments ?? '';
+          commentsController.text = decodeBase64String(product.comments ?? '');
           statusController.text = product.active ?? '';
           productSpecController.text = product.producT_SPEC ?? '';
           labelDescController.text = product.labeL_DESC ?? '';
@@ -280,6 +298,29 @@ class _AllTsKsState extends State<AllTsKs> {
     setState(() {
       _currentDisplay = state;
     });
+  }
+
+
+  String decodeBase64String(String base64String) {
+    if (base64String.isEmpty) {
+      return "";
+    }
+    try {
+      return utf8.decode(base64.decode(base64String));
+    } catch (e) {
+      print("Error decoding Base64 string: $e");
+      return "Error in decoding";
+    }
+  }
+
+// Use this method wherever you need to decode a base64 string.
+
+
+  @override
+  void dispose() {
+    productNoFocusNode.dispose();
+    // Dispose other controllers and focus nodes
+    super.dispose();
   }
 
 
@@ -419,9 +460,9 @@ class _AllTsKsState extends State<AllTsKs> {
                                     child:
                                     TextFormField(
                                       controller: productNoController,
-
+                                      focusNode: productNoFocusNode,
                                       decoration: InputDecoration(
-                                        labelText: 'PRODUCT NUMBER',
+                                        labelText: 'KIT NUMBER',
                                         labelStyle: TextStyle(
                                           fontWeight: FontWeight.bold,  // This makes the labelText bold
                                         ),
@@ -905,6 +946,14 @@ class _AllTsKsState extends State<AllTsKs> {
 
 
                                   ),
+                                  SizedBox(width: screenWidth *0.03),
+                                ],
+                              ),
+                              SizedBox(height: screenWidth *0.01),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+
 
                                   SizedBox(width: screenWidth *0.03),
                                   Flexible(child: SizedBox(
@@ -925,6 +974,24 @@ class _AllTsKsState extends State<AllTsKs> {
 
 
                                   ),
+
+                                  SizedBox(width: screenWidth *0.03),
+                                  Flexible(child: SizedBox(
+                                    width: 200,
+                                    child:
+                                    TextFormField(
+                                      controller: commentsController,
+                                      maxLines: null,
+                                      keyboardType: TextInputType.multiline,
+                                      decoration: InputDecoration(
+                                        labelText: 'COMMENT',
+                                        labelStyle: TextStyle(
+                                          fontWeight: FontWeight.bold,  // This makes the labelText bold
+                                        ),
+
+                                      ),
+                                    ),
+                                  ),),
                                   SizedBox(width: screenWidth *0.03),
                                 ],
                               ),
@@ -1011,22 +1078,7 @@ class _AllTsKsState extends State<AllTsKs> {
 
               ),
               _isDataVisible
-                  ? Expanded(
-                child: Container(
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Product No')),
-                      DataColumn(label: Text('Quantity')),
-                      DataColumn(label: Text('List Price')),
-                    ],
-                    rows: kitBomItems.map((item) => DataRow(cells: [
-                      DataCell(Text(item.productNo)),
-                      DataCell(Text(item.quantity.toString())),
-                      DataCell(Text(item.listPrice.toString())),
-                    ])).toList(),
-                  ),
-                ),
-              )
+                  ? _buildDataTable()
                   : Container(),
             ],
           ),
@@ -1037,4 +1089,22 @@ class _AllTsKsState extends State<AllTsKs> {
       ],
     );
   }
+  Widget _buildDataTable() {
+    return Expanded(
+      child: DataTable(
+        columns: const [
+          DataColumn(label: Text('Product No')),
+          DataColumn(label: Text('Quantity')),
+          DataColumn(label: Text('List Price')),
+        ],
+        rows: kitBomItems.map((item) => DataRow(cells: [
+          DataCell(Text(item.productNo)),
+          DataCell(Text(item.quantity.toString())),
+          DataCell(Text(item.listPrice.toString())),
+        ])).toList(),
+      ),
+    );
+  }
+
+
 }
