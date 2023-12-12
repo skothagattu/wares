@@ -9,8 +9,9 @@ import '../providers/provider_products.dart';
 
 class EditProductForm extends StatefulWidget {
   final ProductSubmission productSubmission;
+  final VoidCallback? onProductUpdated;
 
-  EditProductForm({required this.productSubmission});
+  EditProductForm({required this.productSubmission, this.onProductUpdated});
 
 
   @override
@@ -702,6 +703,9 @@ class _EditProductFormState extends State<EditProductForm> {
 
                 ref.read(updateProductProvider(Tuple2(productNo, UpdateProductSubmission)).future).then((success) {
                   if (success) {
+                    if (widget.onProductUpdated != null) {
+                      widget.onProductUpdated!();
+                    }
                     Navigator.of(context).pop('clearProductNumber');
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Product updated successfully!')),
