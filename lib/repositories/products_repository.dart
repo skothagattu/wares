@@ -15,14 +15,14 @@ abstract class IProductRepository {
 }
 
 class ProductRepository implements IProductRepository{
-  final _host = "http://10.89.2.137:86/api/Products";
+  final _host = "https://localhost:44363/api/Products";
   final Map<String, String> _headers = {
     "Accept" : "application/json",
     "content-type": "application/json",
   };
 
   @override
-  Future<ProductListResponse> fetchProductList({int pageNumber = 1, int pageSize = 15, String? searchQuery}) async {
+  Future<ProductListResponse> fetchProductList({int pageNumber = 1, int pageSize = 50, String? searchQuery}) async {
     var getAllProductsUrl = _host + "/GetAll?pageNumber=$pageNumber&pageSize=$pageSize";
     if (searchQuery != null && searchQuery.isNotEmpty) {
       getAllProductsUrl += "&searchQuery=$searchQuery";

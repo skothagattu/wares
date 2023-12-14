@@ -1,6 +1,9 @@
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:wares/providers/provider_products.dart';
 import 'package:wares/repositories/products_repository.dart';
 import 'package:wares/screens/edit_products_form.dart';
@@ -57,6 +60,14 @@ class _AllProductsState extends ConsumerState<AllProducts> {
   late TextEditingController instGuideController;
   // Add more controllers as needed
   late FocusNode productNoFocusNode;
+  String lastSearchQuery = '';
+  List<Product> searchResults = [];
+  bool isSearching = false;
+
+
+  int currentPage = 1;
+  int totalItems = 0;
+
   @override
   void initState() {
     super.initState();
@@ -202,7 +213,19 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       );
     }
   }
-
+  void _showEditProductDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return EditProductForm(productSubmission: ProductSubmission.fromProduct(product));
+      },
+    ).then((result) {
+      if (result == 'clearProductNumber') {
+        productNoController.clear();
+      }
+      // You may want to do something with the result here, like refreshing the list
+    });
+  }
 
 
   Future<void> _selectDateTime(BuildContext context, TextEditingController controller) async {
@@ -228,20 +251,168 @@ class _AllProductsState extends ConsumerState<AllProducts> {
           selectedTime.minute,
         );
 
-        String formattedDateTime = "${selectedDateTime.toLocal()}".split('.')[0];
+        // Use DateFormat to format the DateTime object
+        String formattedDateTime = DateFormat("yyyy-MM-dd'T'HH:mm:ss").format(selectedDateTime);
         controller.text = formattedDateTime;
       }
     }
   }
 
 
+  void _onSubmitPressed() async {
+    final isFormComplete = widget.formKey.currentState?.validate() ?? false;
+    final partialProductNumber = productNoController.text;
 
+
+    if (isFormComplete) {
+
+      // All fields are filled in, proceed with creating a new product or checking existing
+      final productCheckResult = await ref.read(checkProductProvider(partialProductNumber).future);
+      if (productCheckResult.item1) {
+        // Product number exists, show dialog to edit
+        _showProductExistsDialog(productCheckResult.item2);
+      } else {
+        // Create a new product
+        _createNewProduct();
+      }
+    } else if (partialProductNumber.isNotEmpty) {
+      // If the form isn't complete but there's a partial product number, perform a search.
+      final productCheckResult = await ref.read(checkProductProvider(partialProductNumber).future);
+      if (productCheckResult.item1) {
+        // Product number exists, show dialog to edit, don't perform a search
+        _showProductExistsDialog(productCheckResult.item2);
+      } else {
+        // Perform search
+        _performSearch(1);
+      }
+    } else {
+      // If the form is incomplete and there's no product number, show an error message.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in the form to create a product or enter a product number to search')),
+      );
+    }
+  }
+
+  void _createNewProduct() {
+    String base64Comments = base64Encode(utf8.encode(commentsController.text));
+    final createProductSubmission = ProductSubmission(
+      productno: productNoController.text,
+      rev: _emptyToNull(revController.text),
+      description: _emptyToNull(descriptionController.text),
+      configuration: _emptyToNull(configurationController.text),
+      llc: _emptyToNull(llcController.text),
+      level1: _emptyToNull(level1Controller.text),
+      type: _emptyToNull(typeController.text),
+      ecr: _emptyToNull(ecrController.text),
+      listprice: _emptyToNull(listpriceController.text),
+      comments: _emptyToNull(base64Comments),
+      active: _emptyToNull(statusController.text),
+      labelDesc: _emptyToNull(labelDescController.text),
+      productSpec: _emptyToNull(productSpecController.text),
+      labelConfig: _emptyToNull(labelConfigController.text),
+      dateReq: _emptyToNull(dateReqController.text),
+      dateDue: _emptyToNull(dateDueController.text),
+      level2: _emptyToNull(level2Controller.text),
+      level3: _emptyToNull(level3Controller.text),
+      level4: _emptyToNull(level4Controller.text),
+      level5: _emptyToNull(level5Controller.text),
+      sequenceNum: _emptyToNull(sequenceNumController.text),
+      locationWares: _emptyToNull(locationWaresController.text),
+      locationAccpac: _emptyToNull(locationAccpacController.text),
+      locationMisys: _emptyToNull(locationMisysController.text),
+      level6: _emptyToNull(level6Controller.text),
+      level7: _emptyToNull(level7Controller.text),
+      instGuide: _emptyToNull(instGuideController.text),
+      // ... Set other fields as needed
+    );
+    print(dateReqController.text);
+    print('created product: $createProductSubmission');
+    ref.read(createProductProvider(createProductSubmission).future).then((success) {
+      if (success) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Product created successfully!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to create product')),
+        );
+      }
+    }).catchError((error) {
+      print('An error occurred: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred while creating the product')),
+      );
+    });
+    // ... Existing logic to create a product
+  }
+  Future<void> _performSearch(int pageNumber) async {
+    final partialProductNumber = productNoController.text;
+    setState(() {
+      isSearching = true; // Show a loading indicator
+    });
+    try {
+      final response = await ref.read(productsRepositoryProvider).fetchProductList(
+        pageNumber: pageNumber,
+        pageSize: 50,
+        searchQuery: partialProductNumber,
+      );
+      setState(() {
+        searchResults = response.data.items;
+        // Assuming 'items' contains a list of Product objects
+        totalItems = response.data.totalItems; // Update the total number of items
+        currentPage = pageNumber; // Update the current page
+      });
+    } catch (e) {
+      // Handle the error appropriately
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred while searching for products')),
+      );
+    } finally {
+      setState(() {
+        isSearching = false; // Hide the loading indicator
+      });
+    }
+  }
+  void _goToPreviousPage() {
+    if (currentPage > 1) {
+      _performSearch(currentPage - 1);
+    }
+  }
+
+  void _goToNextPage() {
+    if (currentPage < (totalItems / 50).ceil()) {
+      _performSearch(currentPage + 1);
+    }
+  }
 
   void navigateLookUp(BuildContext ctx){
     Navigator.of(ctx).push(MaterialPageRoute(builder: (_){
       return LookupListScreen();
     }));
   }
+  Widget _buildTitleWithSearch() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Spacer(), // Pushes the title to center
+        Expanded(
+          flex: 2, // Allocates twice the space for the title to ensure it stays centered
+          child: Center( // Centers the title text within the allocated space
+            child: Text("ALL PRODUCTS", style: TextStyle(fontSize: 30)),
+          ),
+        ),
+        Spacer(), // Also pushes the title to center from the right
+        IconButton(
+          icon: Icon(Icons.search),
+          onPressed: () {
+            // Implement what happens when the search icon is pressed
+          },
+        ),
+      ],
+    );
+  }
+
 
 
   @override
@@ -261,9 +432,9 @@ class _AllProductsState extends ConsumerState<AllProducts> {
           ),
 
 
-          body: Stack(
+          body: Row(
             children: [
-              Positioned(
+              /*Positioned(
                   top: 10,
                   right: 10,
                   child: ElevatedButton(
@@ -272,15 +443,17 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                     },
                     child: Text("Look Up"),
                   )
-              ),
-              Center(
+              ),*/
+              Expanded(
+                flex:  searchResults.isNotEmpty ? 4 : 5,
                 child:  SingleChildScrollView(
                   child: Container(
-                    padding: const EdgeInsets.only(top:50,left: 40, right: 40, bottom: 40),
+                    padding: const EdgeInsets.all(40),
 
                     child: Container(
                       width: screenWidth * 0.8,
-                      /* height: screenWidth* 0.35,*/
+                     height: screenWidth* 0.29,
+
                       decoration: BoxDecoration(
                         border: Border.all(
                           color: Colors.black,
@@ -300,534 +473,39 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                         child:
                         Column(
                           mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Center(
-                                  child: Text(
-                                    "ALL PRODUCTS"
-                                    ,
-                                    style: TextStyle(fontSize: 30),
-                                  ),
-                                )
-                              ],
-                            ),
-                            SizedBox(height: screenWidth *0.03),
-                            Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
 
-                                    SizedBox(width: screenWidth *0.03, height: 10,),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: productNoController,
-                                        focusNode: productNoFocusNode,
-                                        decoration: InputDecoration(
-                                          labelText: 'PRODUCT NUMBER',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-                                          suffixIcon: _isProductNumberValid ? Icon(Icons.check_circle, color: Colors.green) : null,
-
-                                        ),
-
-                                      ),
-                                    ),),
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: revController,
-                                        decoration: InputDecoration(
-                                          labelText: 'REV',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: statusController,
-                                        decoration: InputDecoration(
-                                          labelText: 'STATUS',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-                                    ),
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: typeController,
-                                        decoration: InputDecoration(
-                                          labelText: 'TYPE',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-                                      child:
-                                      TextFormField(
-                                        controller: descriptionController,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'DESCRIPTION',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-                                    SizedBox(width: screenWidth *0.03),
-
-                                  ],
-                                ),
-
-                                SizedBox(height: screenWidth *0.01),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(width: screenWidth *0.03, height: 10,),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      TextFormField(
-                                        controller: labelDescController,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'LABEL DESCRIPTION',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      TextFormField(
-                                        controller: configurationController,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'CONFIGURATION',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      TextFormField(
-                                        controller: labelConfigController,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'LABEL CONFIGURATION',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      TextFormField(
-                                        controller: listpriceController,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'LIST PRICE',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      GestureDetector(
-                                        onTap: () => _selectDateTime(context, dateReqController),
-                                        child: AbsorbPointer(
-                                          child: TextFormField(
-                                            controller: dateReqController,
-                                            decoration: InputDecoration(
-                                                labelText: 'DATE REQUIRED',
-                                                labelStyle: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                )
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-                                    SizedBox(width: screenWidth *0.03),
-                                  ],
-                                ),
-                                SizedBox(height: screenWidth *0.01),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(width: screenWidth *0.03, height: 10,),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      GestureDetector(
-                                        onTap: () => _selectDateTime(context, dateDueController),
-                                        child: AbsorbPointer(
-                                          child: TextFormField(
-                                            maxLines: null,
-                                            keyboardType: TextInputType.multiline,
-                                            controller: dateDueController,
-                                            decoration: InputDecoration(
-                                                labelText: 'DATE DUE',
-                                                labelStyle: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                )
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),),
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-
-                                      child:
-                                      TextFormField(
-                                        controller: llcController,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'LLC',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-
-                                      child:
-                                      TextFormField(
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        controller: productSpecController,
-                                        decoration: InputDecoration(
-                                          labelText: 'PRODUCT SPECIFICATION',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      TextFormField(
-                                        controller: level1Controller,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 1',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: screenWidth*0.3,
-                                      child:
-                                      TextFormField(
-                                        controller: level2Controller,
-                                        maxLines: null,
-                                        keyboardType: TextInputType.multiline,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 2',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),),
-                                    SizedBox(width: screenWidth *0.03),
-                                  ],
-                                ),
-
-                                SizedBox(height: screenWidth *0.01),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(width: screenWidth *0.03, height: 10,),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: level3Controller,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 3',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: level4Controller,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 4',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: level5Controller,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 5',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: level6Controller,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 6',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: level7Controller,
-                                        decoration: InputDecoration(
-                                          labelText: 'LEVEL 7',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-                                    SizedBox(width: screenWidth *0.03),
-                                  ],
-                                ),
-                                SizedBox(height: screenWidth *0.01),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  children: [
-                                    SizedBox(width: screenWidth *0.03, height: 10,),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: sequenceNumController,
-                                        decoration: InputDecoration(
-                                          labelText: 'SEQUENCE NO',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: locationWaresController,
-                                        decoration: InputDecoration(
-                                          labelText: 'LOCATION WARES',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: locationAccpacController,
-                                        decoration: InputDecoration(
-                                          labelText: 'LOCATION ACCPAC',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: locationMisysController,
-                                        decoration: InputDecoration(
-                                          labelText: 'LOCATION MISYS',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-
-                                    SizedBox(width: screenWidth *0.03),
-                                    Flexible(child: SizedBox(
-                                      width: 200,
-
-                                      child:
-                                      TextFormField(
-                                        controller: instGuideController,
-                                        decoration: InputDecoration(
-                                          labelText: 'INST GUIDE',
-                                          labelStyle: TextStyle(
-                                            fontWeight: FontWeight.bold,  // This makes the labelText bold
-                                          ),
-
-                                        ),
-                                      ),
-                                    ),
-
-
-                                    ),
-                                    SizedBox(width: screenWidth *0.03),
-                                  ],
-                                ),
-
-
-
-                              ],
-                            ),
-
+                            _buildTitleWithSearch(),
+                            SizedBox(height: screenWidth * 0.03),
+                          _buildFormRow(screenWidth, [
+                            _buildStandardTextField(productNoController, 'PRODUCT NUMBER'),
+                            _buildStandardTextField(revController, 'REV'),
+                            _buildStandardTextField(statusController, 'STATUS'),
+                            _buildStandardTextField(typeController, 'TYPE'),
+                            _buildStandardTextField(descriptionController, 'DESCRIPTION'),
+                            // ... other fields// Custom field with date picker
+                            // ... other fields
+                          ]),
+
+                          SizedBox(height: screenWidth * 0.01),
+                          _buildFormRow(screenWidth, [
+                            _buildStandardTextField(labelDescController, 'LABEL DESCRIPTION'),
+                            _buildStandardTextField(configurationController, 'CONFIGURATION'),
+                            _buildStandardTextField(labelConfigController, 'LABEL CONFIGURATION'),
+                            _buildDateModifiedField(),
+                            _buildStandardTextField(llcController, 'COMPANY'),
+                            // ... other fields// Custom field with date picker
+                            // ... other fields
+                          ]),
+
+                            SizedBox(height: screenWidth * 0.01),
+                            // Add more rows of fields in similar fashion
+                            // ... (add other rows here)
+                            _buildFormRow(screenWidth, [
+                              _buildStandardTextField(commentsController, 'COMMENTS'),
+                              // Custom field with date picker
+                              // ... other fields
+                            ]),
                             SizedBox(height: screenWidth *0.03),
                             Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -839,58 +517,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                                     width: screenWidth*0.2,
                                     height: MediaQuery.of(context).size.height *0.05,
                                     child: ElevatedButton(
-                                      onPressed: () {
-                                        if (widget.formKey.currentState!.validate()) {
-                                          final createProductSubmission = ProductSubmission(
-                                            productno: productNoController.text,
-                                            rev: _emptyToNull(revController.text),
-                                            description: _emptyToNull(descriptionController.text),
-                                            configuration: _emptyToNull(configurationController.text),
-                                            llc: _emptyToNull(llcController.text),
-                                            level1: _emptyToNull(level1Controller.text),
-                                            type: _emptyToNull(typeController.text),
-                                            ecr: _emptyToNull(ecrController.text),
-                                            listprice: _emptyToNull(listpriceController.text),
-                                            comments: _emptyToNull(commentsController.text),
-                                            active: _emptyToNull(statusController.text),
-                                            labelDesc: _emptyToNull(labelDescController.text),
-                                            productSpec: _emptyToNull(productSpecController.text),
-                                            labelConfig: _emptyToNull(labelConfigController.text),
-                                            dateReq: _emptyToNull(dateReqController.text),
-                                            dateDue: _emptyToNull(dateDueController.text),
-                                            level2: _emptyToNull(level2Controller.text),
-                                            level3: _emptyToNull(level3Controller.text),
-                                            level4: _emptyToNull(level4Controller.text),
-                                            level5: _emptyToNull(level5Controller.text),
-                                            sequenceNum: _emptyToNull(sequenceNumController.text),
-                                            locationWares: _emptyToNull(locationWaresController.text),
-                                            locationAccpac: _emptyToNull(locationAccpacController.text),
-                                            locationMisys: _emptyToNull(locationMisysController.text),
-                                            level6: _emptyToNull(level6Controller.text),
-                                            level7: _emptyToNull(level7Controller.text),
-                                            instGuide: _emptyToNull(instGuideController.text),
-                                            // ... Set other fields as needed
-                                          );
-                                          print('created product: $createProductSubmission');
-                                          ref.read(createProductProvider(createProductSubmission).future).then((success) {
-                                            if (success) {
-                                              Navigator.of(context).pop();
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Product created successfully!')),
-                                              );
-                                            } else {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                SnackBar(content: Text('Failed to create product')),
-                                              );
-                                            }
-                                          }).catchError((error) {
-                                            print('An error occurred: $error');
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('An error occurred while creating the product')),
-                                            );
-                                          });
-                                        }
-                                      },
+                                      onPressed: _onSubmitPressed,
                                       child: Text('Submit'),
                                     ),
 
@@ -903,6 +530,9 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                                   height: MediaQuery.of(context).size.height * 0.05,
                                   child: ElevatedButton(
                                     onPressed: () {
+                                      if (widget.formKey.currentState != null) {
+                                        widget.formKey.currentState!.reset();
+                                      }
                                       // Clear all the text controllers
                                       productNoController.clear();
                                       revController.clear();
@@ -932,8 +562,10 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                                       level7Controller.clear();
                                       instGuideController.clear();
                                       // Set _isProductNumberValid to false
+
                                       setState(() {
                                         _isProductNumberValid = false;
+                                        searchResults.clear();
                                       });
                                     },
                                     child: Text('Clear'),
@@ -953,7 +585,63 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                   ),
                 ),
               ),
-            ],
+              if (searchResults.isNotEmpty)
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    children: [
+                      // Fixed header
+                      Container(
+                        padding: EdgeInsets.all(15),
+
+                        child:
+                        Text('PRODUCT NUMBER', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+
+                      // Scrollable DataTable
+                      Flexible(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SingleChildScrollView(
+                            child: DataTable(
+                              columns: [DataColumn(label: Text(''))],
+                              rows: searchResults.map((product) {
+                                return DataRow(
+                                  onSelectChanged: (bool? selected) {
+                                    if (selected ?? false) {
+                                      _showEditProductDialog(product);
+                                    }
+                                  },
+                                  cells: [DataCell(Text(product.productno))],
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Fixed footer for pagination
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.chevron_left),
+                            onPressed: currentPage > 1 ? _goToPreviousPage : null,
+                          ),
+                          Text('Page $currentPage of ${((totalItems - 1) / 50).ceil()}'),
+                          IconButton(
+                            icon: Icon(Icons.chevron_right),
+                            onPressed: currentPage < (totalItems / 50).ceil() ? _goToNextPage : null,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+
+
+      ],
           )
 
 
@@ -962,6 +650,75 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     }
     );
 
+  }
+  Widget _buildFormRow(double screenWidth, List<Widget> rowFields) {
+    double spaceBetweenFields = screenWidth * 0.02; // 2% of the screen width
+    List<Widget> rowWidgets = [];
+
+    for (int i = 0; i < rowFields.length; i++) {
+      rowWidgets.add(
+        Flexible(
+          child: Padding(
+            padding: EdgeInsets.only(right: i < rowFields.length - 1 ? spaceBetweenFields : 0),
+            child: rowFields[i], // Use the widget directly
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: rowWidgets,
+    );
+  }
+
+
+  Widget _buildStandardTextField(TextEditingController controller, String label) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(fontWeight: FontWeight.bold),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+      ),
+      validator: (value) {
+        if (value == null || value!.isEmpty) {
+          return 'Please enter $label';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildDateModifiedField() {
+    return TextFormField(
+      controller: dateReqController,
+      readOnly: true, // Makes the field not editable directly
+      decoration: InputDecoration(
+        labelText: 'Date Modified',
+        labelStyle: TextStyle(fontWeight: FontWeight.bold),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+        suffixIcon: Icon(Icons.calendar_today), // Calendar icon
+      ),
+      onTap: () async {
+        // Prevents keyboard from appearing
+        FocusScope.of(context).requestFocus(new FocusNode());
+        // Opens date picker
+        await _selectDateTime(context, dateReqController);
+      },
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter Date Modified';
+        }
+        return null;
+      },
+    );
   }
   String? _emptyToNull(String? input) {
     if (input == null || input.trim().isEmpty) {
