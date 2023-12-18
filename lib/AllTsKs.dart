@@ -205,7 +205,7 @@ class _AllTsKsState extends State<AllTsKs> {
           revController.text = product.rev ?? '';
           descriptionController.text = product.description ?? '';
           configurationController.text = product.configuration ?? '';
-          llcController.text = product.llc.toString() ?? '';
+          /*llcController.text = product.llc.toString() ?? '';*/
           level1Controller.text = product.leveL1 ?? '';
           level2Controller.text = product.leveL2 ?? '';
           level3Controller.text = product.leveL3 ?? '';

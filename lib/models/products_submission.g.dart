@@ -13,7 +13,6 @@ ProductSubmission _$ProductSubmissionFromJson(Map<String, dynamic> json) =>
       rev: json['rev'] as String?,
       description: json['description'] as String?,
       configuration: json['configuration'] as String?,
-      llc: json['llc'] as String?,
       listprice: json['listprice'] as String?,
       level1: json['leveL1'] as String?,
       type: json['type'] as String?,
@@ -45,7 +44,6 @@ Map<String, dynamic> _$ProductSubmissionToJson(ProductSubmission instance) =>
       'rev': instance.rev,
       'description': instance.description,
       'configuration': instance.configuration,
-      'llc': instance.llc,
       'listprice': instance.listprice,
       'leveL1': instance.level1,
       'type': instance.type,
@@ -68,4 +66,6 @@ Map<String, dynamic> _$ProductSubmissionToJson(ProductSubmission instance) =>
       'leveL6': instance.level6,
       'leveL7': instance.level7,
       'insT_GUIDE': instance.instGuide,
+          'companyName': instance.companyName,
+
     };

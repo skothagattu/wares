@@ -22,7 +22,7 @@ class _EditProductFormState extends State<EditProductForm> {
   late TextEditingController _revController;
   late TextEditingController _descriptionController;
   late TextEditingController _configurationController;
-  late TextEditingController _llcController;
+/*  late TextEditingController _llcController;*/
   late TextEditingController _level1Controller;
   late TextEditingController _typeController;
   late TextEditingController _ecrController;
@@ -45,6 +45,7 @@ class _EditProductFormState extends State<EditProductForm> {
   late TextEditingController _level6Controller;
   late TextEditingController _level7Controller;
   late TextEditingController _instGuideController;
+  late TextEditingController companyNameController;
 
 
 
@@ -56,7 +57,7 @@ class _EditProductFormState extends State<EditProductForm> {
     _revController = TextEditingController(text: widget.productSubmission.rev);
     _descriptionController = TextEditingController(text: widget.productSubmission.description);
     _configurationController = TextEditingController(text: widget.productSubmission.configuration);
-    _llcController = TextEditingController(text: widget.productSubmission.llc?.toString() ?? '');
+    companyNameController = TextEditingController(text: widget.productSubmission.companyName?.toString() ?? '');
     _level1Controller = TextEditingController(text: widget.productSubmission.level1);
     _typeController = TextEditingController(text: widget.productSubmission.type);
     _ecrController = TextEditingController(text: widget.productSubmission.ecr);
@@ -337,11 +338,11 @@ class _EditProductFormState extends State<EditProductForm> {
                             width: 200,
                             child:
                             TextFormField(
-                              controller: _llcController,
+                              controller: companyNameController,
                               maxLines: null,
                               keyboardType: TextInputType.multiline,
                               decoration: InputDecoration(
-                                labelText: 'LLC',
+                                labelText: 'COMPANY NAME',
                                 labelStyle: TextStyle(
                                   fontWeight: FontWeight.bold,  // This makes the labelText bold
                                 ),
@@ -673,7 +674,7 @@ class _EditProductFormState extends State<EditProductForm> {
                   rev: _emptyToNull(_revController.text),
                   description: _emptyToNull(_descriptionController.text),
                   configuration: _emptyToNull(_configurationController.text),
-                  llc: _emptyToNull(_llcController.text),
+                  companyName: _emptyToNull(companyNameController.text),
                   level1: _emptyToNull(_level1Controller.text),
                   type: _emptyToNull(_typeController.text),
                   ecr: _emptyToNull(_ecrController.text),

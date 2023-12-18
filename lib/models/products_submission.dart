@@ -13,7 +13,6 @@ class ProductSubmission {
   final String? rev;
   final String? description;
   final String? configuration;
-  final String? llc;
   final String? listprice;
   @JsonKey(name: 'leveL1')
   final String? level1;
@@ -54,6 +53,7 @@ class ProductSubmission {
   @JsonKey(name: 'insT_GUIDE')
   final String? instGuide;
   final String? rowVersion;
+  final String? companyName;
 
   ProductSubmission({
     this.id,
@@ -61,7 +61,6 @@ class ProductSubmission {
     this.rev,
     this.description,
     this.configuration,
-    this.llc,
     this.listprice,
     this.level1,
     this.type,
@@ -85,6 +84,7 @@ class ProductSubmission {
     this.level7,
     this.instGuide,
     this.rowVersion,
+    this.companyName
   });
 
   factory ProductSubmission.fromProduct(Product product) {
@@ -94,7 +94,6 @@ class ProductSubmission {
       rev: _emptyToNull(product.rev),
       description: _emptyToNull(product.description),
       configuration: _emptyToNull(product.configuration),
-      llc: _emptyToNull(product.llc?.toString()),
       listprice: _emptyToNull(product.listprice?.toString()),
       level1: _emptyToNull(product.leveL1),
       type: _emptyToNull(product.type),
@@ -118,6 +117,7 @@ class ProductSubmission {
       level7: _emptyToNull(product.leveL7),
       instGuide: _emptyToNull(product.insT_GUIDE),
         rowVersion: _emptyToNull(product.rowVersion),
+      companyName: _emptyToNull(product.companyName),
     );
   }
 

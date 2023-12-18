@@ -37,7 +37,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
   late TextEditingController typeController;
   late TextEditingController descriptionController;
   late TextEditingController configurationController;
-  late TextEditingController llcController;
+  /*late TextEditingController llcController;*/
   late TextEditingController level1Controller;
   late TextEditingController ecrController;
   late TextEditingController listpriceController;
@@ -58,6 +58,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
   late TextEditingController locationAccpacController;
   late TextEditingController locationMisysController;
   late TextEditingController instGuideController;
+  late TextEditingController companyNameController;
   // Add more controllers as needed
   late FocusNode productNoFocusNode;
   String lastSearchQuery = '';
@@ -75,7 +76,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     revController = TextEditingController(text: widget.productSubmission.rev);
     descriptionController = TextEditingController(text: widget.productSubmission.description);
     configurationController = TextEditingController(text: widget.productSubmission.configuration);
-    llcController = TextEditingController(text: widget.productSubmission.llc?.toString() ?? '');
+    companyNameController = TextEditingController(text: widget.productSubmission.companyName?.toString() ?? '');
     level1Controller = TextEditingController(text: widget.productSubmission.level1);
     typeController = TextEditingController(text: widget.productSubmission.type);
     ecrController = TextEditingController(text: widget.productSubmission.ecr);
@@ -115,7 +116,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     typeController.dispose();
     descriptionController.dispose();
     configurationController.dispose();
-    llcController.dispose();
+    companyNameController.dispose();
     level1Controller.dispose();
     ecrController.dispose();
     listpriceController.dispose();
@@ -300,7 +301,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       rev: _emptyToNull(revController.text),
       description: _emptyToNull(descriptionController.text),
       configuration: _emptyToNull(configurationController.text),
-      llc: _emptyToNull(llcController.text),
+      companyName: companyNameController.text,
       level1: _emptyToNull(level1Controller.text),
       type: _emptyToNull(typeController.text),
       ecr: _emptyToNull(ecrController.text),
@@ -413,6 +414,8 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     );
   }
 
+  List<String> companies = ['CMI', 'CabAire', 'Fleet Management', 'Security Management', 'Time Management', 'EVSE'];
+  String? selectedCompany;
 
 
   @override
@@ -493,7 +496,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                             _buildStandardTextField(configurationController, 'CONFIGURATION'),
                             _buildStandardTextField(labelConfigController, 'LABEL CONFIGURATION'),
                             _buildDateModifiedField(),
-                            _buildStandardTextField(llcController, 'COMPANY'),
+                            _buildCompanyDropdownField(companyNameController, companies)
                             // ... other fields// Custom field with date picker
                             // ... other fields
                           ]),
@@ -538,7 +541,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                                       revController.clear();
                                       descriptionController.clear();
                                       configurationController.clear();
-                                      llcController.clear();
+                                      companyNameController.clear();
                                       level1Controller.clear();
                                       typeController.clear();
                                       ecrController.clear();
@@ -687,6 +690,36 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       validator: (value) {
         if (value == null || value!.isEmpty) {
           return 'Please enter $label';
+        }
+        return null;
+      },
+    );
+  }
+  Widget _buildCompanyDropdownField(TextEditingController controller, List<String> companies) {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: 'Company',
+        labelStyle: TextStyle(fontWeight: FontWeight.bold),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+      ),
+      value: controller.text.isEmpty ? null : controller.text,
+      onChanged: (String? newValue) {
+        setState(() {
+          controller.text = newValue ?? ''; // Update the controller with the selected value
+        });
+      },
+      items: companies.map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please select a company';
         }
         return null;
       },

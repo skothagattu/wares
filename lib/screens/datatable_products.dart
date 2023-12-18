@@ -155,7 +155,7 @@ class _ProductTableState extends State<ProductTable> {
                           DataCell(Text(product.rev ?? 'N/A')),
                           DataCell(Text(product.description ?? 'N/A')),
                           DataCell(Text(product.configuration ?? 'N/A')),
-                          DataCell(Text(product.llc?.toString() ?? 'N/A')),
+                          /*DataCell(Text(product.llc?.toString() ?? 'N/A')),*/
                           DataCell(Text(product.leveL1 ?? 'N/A')),
                           DataCell(Text(product.type ?? 'N/A')),
                           DataCell(Text(product.ecr ?? 'N/A')),

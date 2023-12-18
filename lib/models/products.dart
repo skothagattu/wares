@@ -74,7 +74,6 @@ class Product {
     this.alpha,
     this.description,
     this.configuration,
-    this.llc,
     this.leveL1,
     this.type,
     this.ecr,
@@ -98,6 +97,7 @@ class Product {
     this.leveL7,
     this.insT_GUIDE,
     this.rowVersion,
+    this.companyName,
   });
 
   late final int id;
@@ -106,7 +106,6 @@ class Product {
   late final String? alpha;
   late final String? description;
   late final String? configuration;
-  late final int? llc;
   late final String? leveL1;
   late final String? type;
   late final String? ecr;
@@ -130,6 +129,7 @@ class Product {
   late final String? leveL7;
   late final String? insT_GUIDE;
   late final String? rowVersion;
+  late final String? companyName;
 
   Product.fromJson(Map<String, dynamic> json) {
     id = json['id'];
@@ -138,7 +138,6 @@ class Product {
     alpha = json['alpha'];
     description = json['description'];
     configuration = json['configuration'];
-    llc = json['llc'];
     leveL1 = json['leveL1'];
     type = json['type'];
     ecr = json['ecr'];
@@ -162,7 +161,7 @@ class Product {
     leveL7 = json['leveL7'];
     insT_GUIDE = json['insT_GUIDE'];
     rowVersion = json['rowVersion'];
-
+    companyName = json['companyName'];
   }
 
   Map<String, dynamic> toJson() {
@@ -173,7 +172,6 @@ class Product {
     _data['alpha'] = alpha;
     _data['description'] = description;
     _data['configuration'] = configuration;
-    _data['llc'] = llc;
     _data['leveL1'] = leveL1;
     _data['type'] = type;
     _data['ecr'] = ecr;
@@ -197,12 +195,13 @@ class Product {
     _data['leveL7'] = leveL7;
     _data['insT_GUIDE'] = insT_GUIDE;
     _data['rowVersion'] = rowVersion;
+    _data['companyName'] = companyName;
     return _data;
 
 
   }
   @override
   String toString() {
-    return 'Product{id: $id, productno: $productno, rev: $rev, description: $description, configuration: $configuration, llc: $llc, level1: $leveL1, type: $type, ecr: $ecr, listprice: $listprice, comments: $comments, active: $active, labelDesc: $labeL_DESC, productSpec: $producT_SPEC, labelConfig: $labeL_CONFIG, dateReq: $datE_REQ, dateDue: $datE_DUE, level2: $leveL2, level3: $leveL3, level4: $leveL4, level5: $leveL5, sequenceNum: $sequencE_NUM, locationWares: $locatioN_WARES, locationAccpac: $locatioN_ACCPAC, locationMisys: $locatioN_MISYS, level6: $leveL6, level7: $leveL7, instGuide: $insT_GUIDE, rowVersion: $rowVersion}';
+    return 'Product{id: $id, productno: $productno, rev: $rev, description: $description, configuration: $configuration,companyName: $companyName level1: $leveL1, type: $type, ecr: $ecr, listprice: $listprice, comments: $comments, active: $active, labelDesc: $labeL_DESC, productSpec: $producT_SPEC, labelConfig: $labeL_CONFIG, dateReq: $datE_REQ, dateDue: $datE_DUE, level2: $leveL2, level3: $leveL3, level4: $leveL4, level5: $leveL5, sequenceNum: $sequencE_NUM, locationWares: $locatioN_WARES, locationAccpac: $locatioN_ACCPAC, locationMisys: $locatioN_MISYS, level6: $leveL6, level7: $leveL7, instGuide: $insT_GUIDE, rowVersion: $rowVersion}';
   }
 }
