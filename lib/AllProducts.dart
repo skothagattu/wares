@@ -406,8 +406,27 @@ class _AllProductsState extends ConsumerState<AllProducts> {
         Spacer(), // Also pushes the title to center from the right
         IconButton(
           icon: Icon(Icons.search),
-          onPressed: () {
+          onPressed: () async {
             // Implement what happens when the search icon is pressed
+            final partialProductNumber = productNoController.text;
+            if (partialProductNumber.isNotEmpty) {
+              // If the form isn't complete but there's a partial product number, perform a search.
+              final productCheckResult = await ref.read(
+                  checkProductProvider(partialProductNumber).future);
+              if (productCheckResult.item1) {
+                // Product number exists, show dialog to edit, don't perform a search
+                _showProductExistsDialog(productCheckResult.item2);
+              } else {
+                // Perform search
+                _performSearch(1);
+              }
+            } else {
+                // If the form is incomplete and there's no product number, show an error message.
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Please fill in the form to create a product or enter a product number to search')),
+                );
+            }
+
           },
         ),
       ],
@@ -416,7 +435,6 @@ class _AllProductsState extends ConsumerState<AllProducts> {
 
   List<String> companies = ['CMI', 'CabAire', 'Fleet Management', 'Security Management', 'Time Management', 'EVSE'];
   String? selectedCompany;
-
 
   @override
   Widget build(BuildContext context) {
@@ -437,69 +455,57 @@ class _AllProductsState extends ConsumerState<AllProducts> {
 
           body: Row(
             children: [
-              /*Positioned(
-                  top: 10,
-                  right: 10,
-                  child: ElevatedButton(
-                    onPressed: (){
-                      navigateLookUp(context);
-                    },
-                    child: Text("Look Up"),
-                  )
-              ),*/
+
               Expanded(
-                flex:  searchResults.isNotEmpty ? 4 : 5,
-                child:  SingleChildScrollView(
-                  child: Container(
-                    padding: const EdgeInsets.all(40),
+                  flex: screenWidth > 600 ? 3 : 5,
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(40),
+                child: Container(
+                  width: screenWidth * 0.8,
 
-                    child: Container(
-                      width: screenWidth * 0.8,
-                     height: screenWidth* 0.29,
-
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.black,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 5,
-                            blurRadius: 7,
-                            offset: Offset(0,3),
-                          )
-                        ],borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Form(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.black,
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 5,
+                        blurRadius: 7,
+                        offset: Offset(0,3),
+                      )
+                    ],borderRadius: BorderRadius.circular(12),
+                  ),
+                    child:  Form(
                         key: widget.formKey,
-                        child:
-                        Column(
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-
                             _buildTitleWithSearch(),
-                            SizedBox(height: screenWidth * 0.03),
-                          _buildFormRow(screenWidth, [
-                            _buildStandardTextField(productNoController, 'PRODUCT NUMBER'),
-                            _buildStandardTextField(revController, 'REV'),
-                            _buildStandardTextField(statusController, 'STATUS'),
-                            _buildStandardTextField(typeController, 'TYPE'),
-                            _buildStandardTextField(descriptionController, 'DESCRIPTION'),
-                            // ... other fields// Custom field with date picker
-                            // ... other fields
-                          ]),
+                            SizedBox(height: 20),
+                            _buildFormRow(screenWidth, [
+                              _buildStandardTextField(productNoController, 'PRODUCT NUMBER'),
+                              _buildStandardTextField(revController, 'REV'),
+                              _buildStandardTextField(statusController, 'STATUS'),
+                              _buildStandardTextField(typeController, 'TYPE'),
+                              _buildStandardTextField(descriptionController, 'DESCRIPTION'),
+                              // ... other fields// Custom field with date picker
+                              // ... other fields
+                            ]),
 
-                          SizedBox(height: screenWidth * 0.01),
-                          _buildFormRow(screenWidth, [
-                            _buildStandardTextField(labelDescController, 'LABEL DESCRIPTION'),
-                            _buildStandardTextField(configurationController, 'CONFIGURATION'),
-                            _buildStandardTextField(labelConfigController, 'LABEL CONFIGURATION'),
-                            _buildDateModifiedField(),
-                            _buildCompanyDropdownField(companyNameController, companies)
-                            // ... other fields// Custom field with date picker
-                            // ... other fields
-                          ]),
+                            SizedBox(height: screenWidth * 0.01),
+                            _buildFormRow(screenWidth, [
+                              _buildStandardTextField(labelDescController, 'LABEL DESCRIPTION'),
+                              _buildStandardTextField(configurationController, 'CONFIGURATION'),
+                              _buildStandardTextField(labelConfigController, 'LABEL CONFIGURATION'),
+                              _buildDateModifiedField(),
+                             _buildCompanyDropdownField(companyNameController, companies),
+
+                              // ... other fields// Custom field with date picker
+                              // ... other fields
+                            ]),
 
                             SizedBox(height: screenWidth * 0.01),
                             // Add more rows of fields in similar fashion
@@ -509,9 +515,10 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                               // Custom field with date picker
                               // ... other fields
                             ]),
+                            // ... other form rows ...
                             SizedBox(height: screenWidth *0.03),
                             Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
                                 Padding(padding: EdgeInsets.only(
                                   bottom: MediaQuery.of(context).size.height *0.02,
@@ -576,18 +583,14 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                                 ),
                               ],
                             ),
-
                           ],
                         ),
-
-
-
                       ),
-                    ),
-
-                  ),
                 ),
+                  ),
               ),
+              ),
+
               if (searchResults.isNotEmpty)
                 Expanded(
                   flex: 1,
@@ -675,7 +678,6 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     );
   }
 
-
   Widget _buildStandardTextField(TextEditingController controller, String label) {
     return TextFormField(
       controller: controller,
@@ -695,6 +697,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       },
     );
   }
+
   Widget _buildCompanyDropdownField(TextEditingController controller, List<String> companies) {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(
@@ -753,6 +756,8 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       },
     );
   }
+
+
   String? _emptyToNull(String? input) {
     if (input == null || input.trim().isEmpty) {
       return null;

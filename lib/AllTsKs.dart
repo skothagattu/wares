@@ -8,10 +8,12 @@ import 'package:wares/screens/AddKitForm.dart';
 import 'package:wares/screens/DeleteKitForm.dart';
 import 'package:wares/screens/SearchByProductForm.dart';
 import 'package:wares/screens/UpdateKitForm.dart';
+import 'package:wares/screens/edit_products_form.dart';
 import 'package:wares/screens/lookup_list_screen.dart';
 import 'main.dart';
 import 'models/KitBomItem.dart';
 import 'models/products.dart';
+import 'models/products_submission.dart';
 enum DisplayState { search,searchByProd, add, update, delete }
 class AllTsKs extends StatefulWidget{
    AllTsKs({Key? key}) : super(key: key);
@@ -315,6 +317,23 @@ class _AllTsKsState extends State<AllTsKs> {
 
 // Use this method wherever you need to decode a base64 string.
 
+  void _showEditProductDialog(String productNo) async {
+    // Fetch product details based on productNo
+    Product? product = await productRepository.fetchProductDetails(productNo);
+    if (product != null) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return EditProductForm(productSubmission: ProductSubmission.fromProduct(product));
+        },
+      ).then((result) {
+
+        // Refresh the list or perform other actions as needed
+      });
+    } else {
+      // Handle the case where product details are not found
+    }
+  }
 
   @override
   void dispose() {
@@ -388,7 +407,7 @@ class _AllTsKsState extends State<AllTsKs> {
         SizedBox(width: screenWidth *0.06),
         ElevatedButton(onPressed: () => _changeDisplay(DisplayState.delete), child: Text('Delete')),
         SizedBox(width: screenWidth *0.06),
-        ElevatedButton(onPressed: () {navigateLookUp(context);}, child: Text('LookUp')),
+       /* ElevatedButton(onPressed: () {navigateLookUp(context);}, child: Text('LookUp')),*/
       ],
     );
   }
@@ -1097,14 +1116,22 @@ class _AllTsKsState extends State<AllTsKs> {
           DataColumn(label: Text('Quantity')),
           DataColumn(label: Text('List Price')),
         ],
-        rows: kitBomItems.map((item) => DataRow(cells: [
-          DataCell(Text(item.productNo)),
-          DataCell(Text(item.quantity.toString())),
-          DataCell(Text(item.listPrice.toString())),
-        ])).toList(),
+        rows: kitBomItems.map((item) => DataRow(
+          onSelectChanged: (bool? selected) {
+            if (selected ?? false) {
+              _showEditProductDialog(item.productNo);
+            }
+          },
+          cells: [
+            DataCell(Text(item.productNo)),
+            DataCell(Text(item.quantity.toString())),
+            DataCell(Text(item.listPrice.toString())),
+          ],
+        )).toList(),
       ),
     );
   }
+
 
 
 }
