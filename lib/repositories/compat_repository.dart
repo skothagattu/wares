@@ -10,7 +10,7 @@ abstract class ICompatRepository {
 }
 
 class CompatRepository implements ICompatRepository {
-  final _host = "http://10.89.2.137:86/Compat"; // Adjust with your actual API endpoint
+  final _host = "http://10.89.2.66:86/Compat"; // Adjust with your actual API endpoint
   final Map<String, String> _headers = {
     "Accept": "application/json",
     "content-type": "application/json",
