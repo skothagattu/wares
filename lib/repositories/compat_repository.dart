@@ -11,7 +11,7 @@ abstract class ICompatRepository {
 }
 
 class CompatRepository implements ICompatRepository {
-  final _host = "https://localhost:44363/Compat";// Adjust with your actual API endpoint
+  final _host = "http://10.89.2.117:86/Compat";// Adjust with your actual API endpoint
   final ApiService _apiService = ApiService();
   final Map<String, String> _headers = {
     "Accept": "application/json",
