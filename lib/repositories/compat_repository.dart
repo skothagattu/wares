@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import '../Service/ApiService.dart';
 import '../models/compat.dart'; // Define this model based on your needs
 
 abstract class ICompatRepository {
@@ -10,7 +11,8 @@ abstract class ICompatRepository {
 }
 
 class CompatRepository implements ICompatRepository {
-  final _host = "http://10.89.2.66:86/Compat"; // Adjust with your actual API endpoint
+  final _host = "https://localhost:44363/Compat";// Adjust with your actual API endpoint
+  final ApiService _apiService = ApiService();
   final Map<String, String> _headers = {
     "Accept": "application/json",
     "content-type": "application/json",
@@ -19,7 +21,7 @@ class CompatRepository implements ICompatRepository {
   @override
   Future<List<String>> fetchDistinctModels() async {
     final url = Uri.parse('$_host/models');
-    final response = await http.get(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
 /*    print('Status code1: ${response.statusCode}');
     print('Response body1: ${response.body}');*/
     if (response.statusCode == 200) {
@@ -33,7 +35,7 @@ class CompatRepository implements ICompatRepository {
   @override
   Future<List<String>> fetchDistinctProductTypes() async {
     final url = Uri.parse('$_host/productTypes');
-    final response = await http.get(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
     if (response.statusCode == 200) {
       List<dynamic> types = json.decode(response.body);
       // Filter out null and empty strings
@@ -48,7 +50,7 @@ class CompatRepository implements ICompatRepository {
   @override
   Future<List<CompatModel>> fetchProductsByModelAndType(String model, String type) async {
     final url = Uri.parse('$_host/products?model=$model&type=$type');
-    final response = await http.get(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
 /*    print('Status code3: ${response.statusCode}');
     print('Response body3: ${response.body}');*/
     if (response.statusCode == 200) {

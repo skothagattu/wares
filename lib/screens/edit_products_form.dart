@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tuple/tuple.dart';
 import 'package:wares/models/products_submission.dart';
 import '../models/products.dart';
+import '../models/roleMap.dart';
 import '../providers/provider_products.dart';
 
 class EditProductForm extends StatefulWidget {
@@ -122,6 +124,13 @@ class _EditProductFormState extends State<EditProductForm> {
       }
     }
   }
+  Future<bool> hasRole(String requiredRole) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> roleNumbers = prefs.getStringList('roles') ?? [];
+    List<String> roles = roleNumbers.map((role) => roleMap[int.parse(role)] ?? 'Unknown').toList();
+    return roles.contains(requiredRole);
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -191,63 +200,80 @@ class _EditProductFormState extends State<EditProductForm> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 // Update the product details here
                 // For example, send a PUT request to your API
-                String encodedComments = base64Encode(utf8.encode(_commentsController.text));
-                final productNo = widget.productSubmission.productno ?? (throw 'Product No is null');
-                final UpdateProductSubmission = ProductSubmission(
-                  rev: _emptyToNull(_revController.text),
-                  description: _emptyToNull(_descriptionController.text),
-                  configuration: _emptyToNull(_configurationController.text),
-                  companyName: _emptyToNull(companyNameController.text),
-                  level1: _emptyToNull(_level1Controller.text),
-                  type: _emptyToNull(_typeController.text),
-                  ecr: _emptyToNull(_ecrController.text),
-                  listprice: _emptyToNull(_listpriceController.text),
-                  comments: _emptyToNull(encodedComments),
-                  active: _emptyToNull(_activeController.text),
-                  labelDesc: _emptyToNull(_labelDescController.text),
-                  productSpec: _emptyToNull(_productSpecController.text),
-                  labelConfig: _emptyToNull(_labelConfigController.text),
-                  dateReq: _emptyToNull(_dateReqController.text),
-                  dateDue: _emptyToNull(_dateDueController.text),
-                  level2: _emptyToNull(_level2Controller.text),
-                  level3: _emptyToNull(_level3Controller.text),
-                  level4: _emptyToNull(_level4Controller.text),
-                  level5: _emptyToNull(_level5Controller.text),
-                  sequenceNum: _emptyToNull(_sequenceNumController.text),
-                  locationWares: _emptyToNull(_locationWaresController.text),
-                  locationAccpac: _emptyToNull(_locationAccpacController.text),
-                  locationMisys: _emptyToNull(_locationMisysController.text),
-                  level6: _emptyToNull(_level6Controller.text),
-                  level7: _emptyToNull(_level7Controller.text),
-                  instGuide: _emptyToNull(_instGuideController.text),
-                  // ... Set other fields as needed
-                );
-          /*      print('Updated Product: $UpdateProductSubmission');*/
-
-
-                ref.read(updateProductProvider(Tuple2(productNo, UpdateProductSubmission)).future).then((success) {
-                  if (success) {
-                    if (widget.onProductUpdated != null) {
-                      widget.onProductUpdated!();
-                    }
-                    Navigator.of(context).pop('clearProductNumber');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Product updated successfully!')),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update product')),
-                    );
-                  }
-                }).catchError((error) {
-                  print('An error occurred: $error');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('An error occurred while updating the product')),
+               /* if (await hasRole('Admin') || await hasRole('Manager')) {*/
+                  String encodedComments = base64Encode(
+                      utf8.encode(_commentsController.text));
+                  final productNo = widget.productSubmission.productno ??
+                      (throw 'Product No is null');
+                  final UpdateProductSubmission = ProductSubmission(
+                    rev: _emptyToNull(_revController.text),
+                    description: _emptyToNull(_descriptionController.text),
+                    configuration: _emptyToNull(_configurationController.text),
+                    companyName: _emptyToNull(companyNameController.text),
+                    level1: _emptyToNull(_level1Controller.text),
+                    type: _emptyToNull(_typeController.text),
+                    ecr: _emptyToNull(_ecrController.text),
+                    listprice: _emptyToNull(_listpriceController.text),
+                    comments: _emptyToNull(encodedComments),
+                    active: _emptyToNull(_activeController.text),
+                    labelDesc: _emptyToNull(_labelDescController.text),
+                    productSpec: _emptyToNull(_productSpecController.text),
+                    labelConfig: _emptyToNull(_labelConfigController.text),
+                    dateReq: _emptyToNull(_dateReqController.text),
+                    dateDue: _emptyToNull(_dateDueController.text),
+                    level2: _emptyToNull(_level2Controller.text),
+                    level3: _emptyToNull(_level3Controller.text),
+                    level4: _emptyToNull(_level4Controller.text),
+                    level5: _emptyToNull(_level5Controller.text),
+                    sequenceNum: _emptyToNull(_sequenceNumController.text),
+                    locationWares: _emptyToNull(_locationWaresController.text),
+                    locationAccpac: _emptyToNull(
+                        _locationAccpacController.text),
+                    locationMisys: _emptyToNull(_locationMisysController.text),
+                    level6: _emptyToNull(_level6Controller.text),
+                    level7: _emptyToNull(_level7Controller.text),
+                    instGuide: _emptyToNull(_instGuideController.text),
+                    // ... Set other fields as needed
                   );
-                });
+                  /*      print('Updated Product: $UpdateProductSubmission');*/
+
+
+                  ref.read(updateProductProvider(
+                      Tuple2(productNo, UpdateProductSubmission)).future).then((
+                      success) {
+                    if (success) {
+                      if (widget.onProductUpdated != null) {
+                        widget.onProductUpdated!();
+                      }
+                      Navigator.of(context).pop('clearProductNumber');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Product updated successfully!')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update product')),
+                      );
+                    }
+                  }).catchError((error) {
+                    print('An error occurred: $error');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(
+                          'An error occurred while updating the product')),
+                    );
+                  });
+                /*}
+                else {
+                  // User does not have the required role, show an error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(
+                        'You do not have permission to perform this action')),
+                  );
+                }*/
+
               },
               child: Text('Save'),
             ),

@@ -16,9 +16,7 @@ ThemeManager _themeManager = ThemeManager();
 class AllProducts extends ConsumerStatefulWidget  {
 /*  const AllProducts({Key? key}) : super(key: key);*/
   void navigateBack(BuildContext ctx){
-    Navigator.of(ctx).push(MaterialPageRoute(builder: (_){
-      return MyApp();
-    }));
+    Navigator.of(ctx).pop();
   }
   final formKey = GlobalKey<FormState>();
   final ProductSubmission productSubmission = ProductSubmission(

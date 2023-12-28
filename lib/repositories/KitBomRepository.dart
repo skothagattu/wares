@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../Service/ApiService.dart';
 import '../models/KitBomItem.dart';
 import 'package:http/http.dart' as http;
 import 'dart:developer' as developer;
@@ -15,7 +16,8 @@ abstract class IKitBomRepository {
 }
 
 class KitBomRepository implements IKitBomRepository {
-  final _host = "http://10.89.2.66:86/Kits";
+  final _host = "https://localhost:44363/Kits";
+  final ApiService _apiService = ApiService();
   final Map<String, String> _headers = {
     "Accept": "application/json",
     "content-type": "application/json",
@@ -26,7 +28,7 @@ class KitBomRepository implements IKitBomRepository {
   @override
   Future<List<KitBomItem>> fetchKitBomItems(String kitNo) async {
     final url = Uri.parse('$_host/$kitNo');
-    final response = await http.get(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
     print('Status code: ${response.statusCode}');
     print('Response body: ${response.body}');
     if (response.statusCode == 200) {
@@ -44,7 +46,7 @@ class KitBomRepository implements IKitBomRepository {
   @override
   Future<List<KitBomItem>> fetchKitBomItemsWithId(String kitNo) async {
     final url = Uri.parse('$_host/GetWithId/$kitNo');
-    final response = await http.get(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
     print('Status code: ${response.statusCode}');
     print('Response body: ${response.body}');
     if (response.statusCode == 200) {
@@ -59,7 +61,7 @@ class KitBomRepository implements IKitBomRepository {
   @override
   Future<List<KitByProductItem>> fetchKitsByProductNo(String productNo) async {
     final url = Uri.parse('$_host/kitsByComponent/$productNo');
-    final response = await http.get(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
     developer.log('URL: ${response.request?.url}', name: 'KitBomRepository');
     developer.log('Status code: ${response.statusCode}', name: 'KitBomRepository');
 
@@ -81,7 +83,7 @@ class KitBomRepository implements IKitBomRepository {
       "components": components.map((item) => item.toJson()).toList(),
     });
 
-    final response = await http.post(url, headers: _headers, body: body);
+    final response = await _apiService.post(url.toString(), body);
 
     if (response.statusCode == 200) {
       return true;
@@ -98,9 +100,10 @@ class KitBomRepository implements IKitBomRepository {
       "components": components.map((item) => item.toJson()).toList(),
     });
 
-    final response = await http.put(url, headers: _headers, body: body);
-
-    if (response.statusCode == 200) {
+    final response = await _apiService.put(url.toString(), body);
+    print('Status code: ${response.statusCode}');
+    print('Response body: ${response.body}');
+    if (response.statusCode == 200 || response.statusCode == 204) {
       return true;
     } else {
       // Handle errors
@@ -110,7 +113,7 @@ class KitBomRepository implements IKitBomRepository {
   @override
   Future<bool> deleteKitComponent(String kitNo, String productNo) async {
     final url = Uri.parse('$_host/DeleteComponent/$kitNo/$productNo'); // Adjust the endpoint as needed
-    final response = await http.delete(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
     print('Status code: ${response.statusCode}');
     print('Response body: ${response.body}');
     if (response.statusCode == 200 || response.statusCode == 204) {
@@ -124,7 +127,7 @@ class KitBomRepository implements IKitBomRepository {
   @override
   Future<bool> deleteKit(String kitNo) async {
     final url = Uri.parse('$_host/DeleteKit/$kitNo'); // Adjust the endpoint as needed
-    final response = await http.delete(url, headers: _headers);
+    final response = await _apiService.get(url.toString());
     print('Status code: ${response.statusCode}');
     print('Response body: ${response.body}');
     if (response.statusCode == 200 || response.statusCode == 204) {

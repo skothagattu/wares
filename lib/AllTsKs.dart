@@ -17,11 +17,9 @@ import 'models/products_submission.dart';
 enum DisplayState { search,searchByProd, add, update, delete }
 class AllTsKs extends StatefulWidget{
    AllTsKs({Key? key}) : super(key: key);
-  void navigateBack(BuildContext ctx){
-    Navigator.of(ctx).push(MaterialPageRoute(builder: (_){
-      return MyApp();
-    }));
-  }
+   void navigateBack(BuildContext ctx){
+     Navigator.of(ctx).pop();
+   }
   final formKey = GlobalKey<FormState>();
 
 
