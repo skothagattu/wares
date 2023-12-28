@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  final String _baseUrl = "https://localhost:44363/api/";
+  final String _baseUrl = "http://10.89.2.117:86/api/";
   VoidCallback? onLogout;
 
   ApiService({this.onLogout});
