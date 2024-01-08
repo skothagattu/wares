@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   String _message = '';
   void _login() async {
     var response = await http.post(
-      Uri.parse('http://10.89.2.117:86/api/Auth/login'),
+      Uri.parse('http://10.89.2.120:86/api/Auth/login'),
       headers: <String, String>{
         'Content-Type': 'application/json',
       },
@@ -59,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
   void _setPassword() async {
     if (_passwordController.text == _rePasswordController.text) {
       var response = await http.post(
-        Uri.parse('http://10.89.2.117:86/api/Auth/setPassword'),
+        Uri.parse('http://10.89.2.120:86/api/Auth/setPassword'),
         headers: <String, String>{
           'Content-Type': 'application/json',
         },
