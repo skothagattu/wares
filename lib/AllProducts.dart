@@ -216,7 +216,9 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return EditProductForm(productSubmission: ProductSubmission.fromProduct(product));
+        return EditProductForm(productSubmission: ProductSubmission.fromProduct(product)
+        onProductUpdated: _refreshDataTable,
+        );
       },
     ).then((result) {
       if (result == 'clearProductNumber') {
@@ -383,6 +385,11 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     if (currentPage < (totalItems / 50).ceil()) {
       _performSearch(currentPage + 1);
     }
+  }
+
+    void _refreshDataTable() async {
+    // Re-fetch the products data
+    await _performSearch(currentPage);
   }
 
   void navigateLookUp(BuildContext ctx){
