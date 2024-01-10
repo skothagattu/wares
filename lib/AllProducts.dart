@@ -216,7 +216,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return EditProductForm(productSubmission: ProductSubmission.fromProduct(product)
+        return EditProductForm(productSubmission: ProductSubmission.fromProduct(product),
         onProductUpdated: _refreshDataTable,
         );
       },

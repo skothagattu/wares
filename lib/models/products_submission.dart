@@ -89,7 +89,7 @@ class ProductSubmission {
 
   factory ProductSubmission.fromProduct(Product product) {
     return ProductSubmission(
-      id: product.id?.toString(),
+      id: product.id.toString(),
       productno: product.productno,
       rev: _emptyToNull(product.rev),
       description: _emptyToNull(product.description),

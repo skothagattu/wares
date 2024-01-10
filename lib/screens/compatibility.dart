@@ -230,7 +230,7 @@ class _CompatFormState extends State<CompatForm> {
             DataCell(_buildTextCell(_extendedCompatProducts[index].description ?? '')),
             DataCell(_buildTextCell(_extendedCompatProducts[index].configuration ?? '')),
             DataCell(_buildCommentButtonCell(_extendedCompatProducts[index].comments ?? '', index)),
-            DataCell(_buildTextCell(_extendedCompatProducts[index].notes ?? '')),
+            DataCell(_buildTextCell(_extendedCompatProducts[index].notes)),
           ],
         ),
       ),
@@ -266,7 +266,7 @@ class _CompatFormState extends State<CompatForm> {
       final offset = renderBox.localToGlobal(Offset.zero);
       final overlayEntry = _createOverlayEntry(base64Comment, offset, renderBox.size, index);
       _commentOverlays[index] = overlayEntry;
-      Overlay.of(context)!.insert(overlayEntry);
+      Overlay.of(context).insert(overlayEntry);
     }
     setState(() {
       _isCommentOpen[index] = !(_isCommentOpen[index] ?? false);
