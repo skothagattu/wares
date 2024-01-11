@@ -10,7 +10,7 @@ import 'package:wares/models/products_submission.dart';
 import '../Service/ApiService.dart';
 
 abstract class IProductRepository {
-  Future<ProductListResponse> fetchProductList({required int pageNumber, required int pageSize, String? searchQuery});
+  Future<ProductListResponse> fetchProductList({required int pageNumber, required int pageSize, String? searchQuery, String? descriptionQuery});
   Future<bool> updateProduct(String productNo, ProductSubmission productSubmission);
   Future<bool> createProduct(ProductSubmission productSubmission);
   Future<Tuple2<bool, Product?>> checkProduct(String productNo);
@@ -27,10 +27,13 @@ class ProductRepository implements IProductRepository{
   };
 
   @override
-  Future<ProductListResponse> fetchProductList({int pageNumber = 1, int pageSize = 50, String? searchQuery}) async {
+  Future<ProductListResponse> fetchProductList({int pageNumber = 1, int pageSize = 50, String? searchQuery, String? descriptionQuery}) async {
     var getAllProductsUrl = _host + "/GetAll?pageNumber=$pageNumber&pageSize=$pageSize";
     if (searchQuery != null && searchQuery.isNotEmpty) {
       getAllProductsUrl += "&searchQuery=$searchQuery";
+    }
+    if (descriptionQuery != null && descriptionQuery.isNotEmpty) {
+      getAllProductsUrl += "&descriptionQuery=$descriptionQuery";
     }
     /*var results = await http.get(Uri.parse(getAllProductsUrl), headers: _headers);
     *//*print('Raw JSON response: ${results.body}');*//*
