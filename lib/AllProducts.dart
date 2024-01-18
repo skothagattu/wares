@@ -191,7 +191,9 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                   ProductSubmission productSubmission = ProductSubmission.fromProduct(product);
                   final result = await showDialog(
                     context: context,
-                    builder: (context) => EditProductForm(productSubmission: productSubmission),
+                     builder: (context) => EditProductForm(productSubmission: productSubmission, onProductUpdated: (updatedProduct) {
+                      _updateProductInList(updatedProduct);
+                    },),
                   );
                   if (result == 'clearProductNumber') {
                     productNoController.clear();
@@ -217,7 +219,9 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       context: context,
       builder: (BuildContext context) {
         return EditProductForm(productSubmission: ProductSubmission.fromProduct(product),
-        onProductUpdated: _refreshDataTable,
+        onProductUpdated: (updatedProduct){
+          _updateProductInList(updatedProduct);
+        }
         );
       },
     ).then((result) {
@@ -399,6 +403,15 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       return LookupListScreen();
     }));
   }
+  void _updateProductInList(Product updatedProduct) {
+    int index = searchResults.indexWhere((product) => product.id == updatedProduct.id);
+    if (index != -1) {
+      setState(() {
+        searchResults[index] = updatedProduct;
+      });
+    }
+  }
+
   Widget _buildTitleWithSearch() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -12,9 +12,9 @@ import '../providers/provider_products.dart';
 
 class EditProductForm extends ConsumerStatefulWidget  {
   ProductSubmission productSubmission;
-  final VoidCallback? onProductUpdated;
+ final Function(Product) onProductUpdated;
 
-  EditProductForm({required this.productSubmission, this.onProductUpdated});
+  EditProductForm({required this.productSubmission, required this.onProductUpdated});
 
 
   @override
@@ -316,10 +316,11 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
 
                     ref.read(updateProductProvider(
                         Tuple2(productNo, UpdateProductSubmission)).future).then((
-                        success) {
+                        success) async {
                       if (success) {
+                        final updatedProduct = await ref.read(fetchProductDetailsProvider(productNo).future);
                         if (widget.onProductUpdated != null) {
-                          widget.onProductUpdated!();
+                         widget.onProductUpdated!(updatedProduct);
                         }
                         Navigator.of(context).pop('clearProductNumber');
                         ScaffoldMessenger.of(context).showSnackBar(

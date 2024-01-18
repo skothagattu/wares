@@ -322,7 +322,7 @@ class _AllTsKsState extends State<AllTsKs> {
       showDialog(
         context: context,
         builder: (BuildContext context) {
-          return EditProductForm(productSubmission: ProductSubmission.fromProduct(product));
+          return EditProductForm(productSubmission: ProductSubmission.fromProduct(product), onProductUpdated: (Product ){  },);
         },
       ).then((result) {
 

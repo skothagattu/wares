@@ -196,7 +196,7 @@ class _ProductTableState extends State<ProductTable> {
                               showDialog(
                                 context: context,
                                 builder: (context) =>
-                                    EditProductForm(productSubmission: productSubmission, onProductUpdated: _refreshProducts, ),
+                                    EditProductForm(productSubmission: productSubmission, onProductUpdated: (Product ){  } ),
                               );
                             }
                           },
