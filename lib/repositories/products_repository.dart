@@ -16,6 +16,8 @@ abstract class IProductRepository {
   Future<Tuple2<bool, Product?>> checkProduct(String productNo);
   Future<Product> fetchProductDetails(String productNo);
   Future<bool> hasRole(String requiredRole);
+   Future<Product?> getNextProduct(String currentProductNo);
+  Future<Product?> getPreviousProduct(String currentProductNo);
 }
 
 class ProductRepository implements IProductRepository{
@@ -126,6 +128,25 @@ print(url);
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> roles = prefs.getStringList('roles') ?? [];
     return roles.contains(requiredRole);
+  }
+  @override
+  Future<Product?> getNextProduct(String currentProductNo) async {
+    final url = Uri.parse('$_host/GetNextProduct/$currentProductNo');
+    final response = await _apiService.get(url.toString());
+    if (response.statusCode == 200) {
+      return Product.fromJson(json.decode(response.body));
+    }
+    return null;
+  }
+
+  @override
+  Future<Product?> getPreviousProduct(String currentProductNo) async {
+    final url = Uri.parse('$_host/GetPreviousProduct/$currentProductNo');
+    final response = await _apiService.get(url.toString());
+    if (response.statusCode == 200) {
+      return Product.fromJson(json.decode(response.body));
+    }
+    return null;
   }
 
 
