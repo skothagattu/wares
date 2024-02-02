@@ -12,7 +12,7 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _rePasswordController = TextEditingController();
   bool _isPasswordSet = false;
@@ -25,7 +25,7 @@ class _LoginPageState extends State<LoginPage> {
         'Content-Type': 'application/json',
       },
       body: jsonEncode(<String, String>{
-        'email': _emailController.text,
+        'username': _usernameController.text,
         'password': _passwordController.text,
       }),
     );
@@ -64,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
           'Content-Type': 'application/json',
         },
         body: jsonEncode(<String, String>{
-          'email': _emailController.text,
+          'username': _usernameController.text,
           'password': _passwordController.text,
         }),
       );
@@ -88,6 +88,13 @@ class _LoginPageState extends State<LoginPage> {
       });
     }
   }
+  void _handleLogin() {
+    if (_isPasswordSet) {
+      _setPassword();
+    } else {
+      _login();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,19 +110,25 @@ class _LoginPageState extends State<LoginPage> {
             Image.asset('images/logo_cmi.png'),
             SizedBox(height: 50),
             TextField(
-              controller: _emailController,
+              controller: _usernameController,
               decoration: InputDecoration(labelText: 'Email'),
             ),
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(labelText: 'Password'),
               obscureText: true,
+              onSubmitted: (value) {
+                _handleLogin();
+              },
             ),
             if (_showReEnterPassword)
               TextField(
                 controller: _rePasswordController,
                 decoration: InputDecoration(labelText: 'Re-enter Password'),
                 obscureText: true,
+                onSubmitted: (value) {
+                _handleLogin();
+              },
               ),
             SizedBox(height: 20),
             ElevatedButton(

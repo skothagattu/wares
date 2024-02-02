@@ -19,7 +19,7 @@ class AllProducts extends ConsumerStatefulWidget  {
     Navigator.of(ctx).pop();
   }
   final formKey = GlobalKey<FormState>();
-  final ProductSubmission productSubmission = ProductSubmission(
+  ProductSubmission productSubmission = ProductSubmission(
     // Initialize with default values or fetch from an API if needed
   );
 
@@ -191,9 +191,10 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                   ProductSubmission productSubmission = ProductSubmission.fromProduct(product);
                   final result = await showDialog(
                     context: context,
-                     builder: (context) => EditProductForm(productSubmission: productSubmission, onProductUpdated: (updatedProduct) {
+                    builder: (context) => EditProductForm(productSubmission: productSubmission, onProductUpdated: (updatedProduct) {
                       _updateProductInList(updatedProduct);
                     },),
+
                   );
                   if (result == 'clearProductNumber') {
                     productNoController.clear();
@@ -214,15 +215,18 @@ class _AllProductsState extends ConsumerState<AllProducts> {
       );
     }
   }
-  void _showEditProductDialog(Product product) {
+  void _showEditProductDialog(Product product, List<Product> searchResults, int currentIndex) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return EditProductForm(productSubmission: ProductSubmission.fromProduct(product),
-        onProductUpdated: (updatedProduct){
+          onProductUpdated: (updatedProduct){
           _updateProductInList(updatedProduct);
-        }
+        },
+          searchResults: searchResults,
+          currentIndex: currentIndex,
         );
+
       },
     ).then((result) {
       if (result == 'clearProductNumber') {
@@ -267,7 +271,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
   void _onSubmitPressed() async {
     final isFormComplete = widget.formKey.currentState?.validate() ?? false;
     final partialProductNumber = productNoController.text;
-  final partialDescription = descriptionController.text;
+    final partialDescription = descriptionController.text;
 
     if (isFormComplete) {
 
@@ -280,7 +284,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
         // Create a new product
         _createNewProduct();
       }
-    } else if (partialProductNumber.isNotEmpty  || partialDescription.isNotEmpty) {
+    } else if (partialProductNumber.isNotEmpty || partialDescription.isNotEmpty) {
       // If the form isn't complete but there's a partial product number, perform a search.
       final productCheckResult = await ref.read(checkProductProvider(partialProductNumber).future);
       if (productCheckResult.item1) {
@@ -393,16 +397,11 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     }
   }
 
-    void _refreshDataTable() async {
+  void _refreshDataTable() async {
     // Re-fetch the products data
     await _performSearch(currentPage);
   }
 
-  void navigateLookUp(BuildContext ctx){
-    Navigator.of(ctx).push(MaterialPageRoute(builder: (_){
-      return LookupListScreen();
-    }));
-  }
   void _updateProductInList(Product updatedProduct) {
     int index = searchResults.indexWhere((product) => product.id == updatedProduct.id);
     if (index != -1) {
@@ -412,6 +411,12 @@ class _AllProductsState extends ConsumerState<AllProducts> {
     }
   }
 
+
+  void navigateLookUp(BuildContext ctx){
+    Navigator.of(ctx).push(MaterialPageRoute(builder: (_){
+      return LookupListScreen();
+    }));
+  }
   Widget _buildTitleWithSearch() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -429,7 +434,7 @@ class _AllProductsState extends ConsumerState<AllProducts> {
           onPressed: () async {
             // Implement what happens when the search icon is pressed
             final partialProductNumber = productNoController.text;
-             final partialDescription = descriptionController.text;
+            final partialDescription = descriptionController.text;
             if (partialProductNumber.isNotEmpty || partialDescription.isNotEmpty) {
               // If the form isn't complete but there's a partial product number, perform a search.
               final productCheckResult = await ref.read(
@@ -631,17 +636,18 @@ class _AllProductsState extends ConsumerState<AllProducts> {
                           scrollDirection: Axis.horizontal,
                           child: SingleChildScrollView(
                             child: DataTable(
-                              columns: [DataColumn(label: Text(''))],
-                              rows: searchResults.map((product) {
-                                return DataRow(
+                              columns: [DataColumn(label: Text('Product Number'))],
+                              rows: List<DataRow>.generate(
+                                searchResults.length,
+                                    (index) => DataRow(
                                   onSelectChanged: (bool? selected) {
                                     if (selected ?? false) {
-                                      _showEditProductDialog(product);
+                                      _showEditProductDialog(searchResults[index], searchResults, index);
                                     }
                                   },
-                                  cells: [DataCell(Text(product.productno))],
-                                );
-                              }).toList(),
+                                  cells: [DataCell(Text(searchResults[index].productno))],
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -710,6 +716,9 @@ class _AllProductsState extends ConsumerState<AllProducts> {
         ),
         contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
       ),
+      onFieldSubmitted: (value) {
+        _onSubmitPressed();
+      },
       validator: (value) {
         if (value == null || value!.isEmpty) {
           return 'Please enter $label';

@@ -12,9 +12,12 @@ import '../providers/provider_products.dart';
 
 class EditProductForm extends ConsumerStatefulWidget  {
   ProductSubmission productSubmission;
- final Function(Product) onProductUpdated;
+  final Function(Product) onProductUpdated;
+  final List<Product>? searchResults; // Optional
+  final int? currentIndex; // Optional
 
-  EditProductForm({required this.productSubmission, required this.onProductUpdated});
+  EditProductForm({required this.productSubmission, required this.onProductUpdated, this.searchResults,
+    this.currentIndex,});
 
 
   @override
@@ -51,7 +54,7 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
   late TextEditingController companyNameController;
 
 
-
+  int? _currentIndex;
   // ... Add controllers for other fields as needed
 
   @override
@@ -88,7 +91,7 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
     _instGuideController = TextEditingController(text: widget.productSubmission.instGuide);
 
     // ... Initialize other controllers as needed
-
+    _currentIndex = widget.currentIndex;
 
   }
   final _formKey = GlobalKey<FormState>();
@@ -130,35 +133,34 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
     List<String> roles = roleNumbers.map((role) => roleMap[int.parse(role)] ?? 'Unknown').toList();
     return roles.contains(requiredRole);
   }
-  void _fetchNextProduct() async {
-    final currentProductNo = widget.productSubmission.productno;
-    if (currentProductNo != null) {
-      final nextProduct = await ref.read(productsRepositoryProvider).getNextProduct(currentProductNo);
-      if (nextProduct != null) {
+
+  void _fetchNextProduct() {
+    if (widget.searchResults != null && _currentIndex != null) {
+      int newIndex = _currentIndex! + 1;
+      if (newIndex < widget.searchResults!.length) {
         setState(() {
-          widget.productSubmission = ProductSubmission.fromProduct(nextProduct);
-          _updateFormFields(nextProduct);
+          _currentIndex= newIndex;
+          widget.productSubmission = ProductSubmission.fromProduct(widget.searchResults![newIndex]);
+          _updateFormFields(widget.searchResults![newIndex]);
         });
       }
     }
   }
 
-  void _fetchPreviousProduct() async {
-    final currentProductNo = widget.productSubmission.productno;
-    if (currentProductNo != null) {
-      final previousProduct = await ref.read(productsRepositoryProvider).getPreviousProduct(currentProductNo);
-      if (previousProduct != null) {
-        setState(() {
-          widget.productSubmission = ProductSubmission.fromProduct(previousProduct);
-          _updateFormFields(previousProduct);
-        });
-      }
+  void _fetchPreviousProduct() {
+    if (widget.searchResults != null && _currentIndex != null && _currentIndex! > 0) {
+      int newIndex = _currentIndex! - 1;
+      setState(() {
+        _currentIndex = newIndex;
+        widget.productSubmission = ProductSubmission.fromProduct(widget.searchResults![newIndex]);
+        _updateFormFields(widget.searchResults![newIndex]);
+      });
     }
   }
+
 
 
   void _updateFormFields(Product product) {
-    print("9");
     // Update all your text controllers with the new product data
     _revController.text = product.rev ?? '';
     _activeController.text = product.active ?? '';
@@ -175,9 +177,7 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
     _labelDescController.text = product.labeL_DESC ?? '';
     _labelConfigController.text = product.labeL_CONFIG ?? '';
     _dateReqController.text = product.datE_REQ ?? '';
-    print("10");
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -201,15 +201,23 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
                       _buildStandardTextField(_revController, 'REV'),
                       _buildStandardTextField(_activeController, 'STATUS'),
                       _buildStandardTextField(_typeController, 'TYPE'),
-                      _buildStandardTextField(_descriptionController, 'DESCRIPTION'),
+
                       // ... other fields// Custom field with date picker
                       // ... other fields
                     ]),
 
                     SizedBox(height: screenWidth * 0.01),
                     _buildFormRow(screenWidth, [
+                      _buildStandardTextField(_descriptionController, 'DESCRIPTION'),
                       _buildStandardTextField(_labelDescController, 'LABEL DESCRIPTION'),
                       _buildStandardTextField(_configurationController, 'CONFIGURATION'),
+
+
+                      // ... other fields// Custom field with date picker
+                      // ... other fields
+                    ]),
+                    SizedBox(height: screenWidth * 0.01),
+                    _buildFormRow(screenWidth, [
                       _buildStandardTextField(_labelConfigController, 'LABEL CONFIGURATION'),
                       _buildDateModifiedField(),
                       _buildCompanyDropdownField(companyNameController, companies),
@@ -226,134 +234,129 @@ class _EditProductFormState extends ConsumerState<EditProductForm> {
                       // Custom field with date picker
                       // ... other fields
                     ]),
-
-
-
-
-
-
-
                 ]
                 ),
 
               ),
             )
           ),
+
           actions: <Widget>[
-            // Bottom Center: Back and Next buttons
-        Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Left side: Back and Next buttons
             Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Left side: Cancel button
                 TextButton(
                   onPressed: () {
                     Navigator.of(context).pop('clearProductNumber');
                   },
                   child: Text('Cancel'),
                 ),
+                // Spacer to push the navigation and save buttons to the right
 
-              ],
-            ),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.arrow_back),
-                  onPressed: _fetchPreviousProduct,
+                // Conditional display of Back and Next buttons
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (widget.searchResults != null && widget.currentIndex != null) ...[
+                        IconButton(
+                          icon: Icon(Icons.arrow_back),
+                          onPressed: _currentIndex! > 0 ? _fetchPreviousProduct : null,
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.arrow_forward),
+                          onPressed: _currentIndex! < widget.searchResults!.length - 1 ? _fetchNextProduct : null,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                IconButton(
-                  icon: Icon(Icons.arrow_forward),
-                  onPressed: _fetchNextProduct,
-                ),
-                ]
-            ),
-
+                // Save button
                 TextButton(
                   onPressed: () async {
                     // Update the product details here
                     // For example, send a PUT request to your API
-                    /* if (await hasRole('Admin') || await hasRole('Manager')) {*/
-                    String encodedComments = base64Encode(
-                        utf8.encode(_commentsController.text));
-                    final productNo = widget.productSubmission.productno ??
-                        (throw 'Product No is null');
-                    final UpdateProductSubmission = ProductSubmission(
-                      rev: _emptyToNull(_revController.text),
-                      description: _emptyToNull(_descriptionController.text),
-                      configuration: _emptyToNull(_configurationController.text),
-                      companyName: _emptyToNull(companyNameController.text),
-                      level1: _emptyToNull(_level1Controller.text),
-                      type: _emptyToNull(_typeController.text),
-                      ecr: _emptyToNull(_ecrController.text),
-                      listprice: _emptyToNull(_listpriceController.text),
-                      comments: _emptyToNull(encodedComments),
-                      active: _emptyToNull(_activeController.text),
-                      labelDesc: _emptyToNull(_labelDescController.text),
-                      productSpec: _emptyToNull(_productSpecController.text),
-                      labelConfig: _emptyToNull(_labelConfigController.text),
-                      dateReq: _emptyToNull(_dateReqController.text),
-                      dateDue: _emptyToNull(_dateDueController.text),
-                      level2: _emptyToNull(_level2Controller.text),
-                      level3: _emptyToNull(_level3Controller.text),
-                      level4: _emptyToNull(_level4Controller.text),
-                      level5: _emptyToNull(_level5Controller.text),
-                      sequenceNum: _emptyToNull(_sequenceNumController.text),
-                      locationWares: _emptyToNull(_locationWaresController.text),
-                      locationAccpac: _emptyToNull(
-                          _locationAccpacController.text),
-                      locationMisys: _emptyToNull(_locationMisysController.text),
-                      level6: _emptyToNull(_level6Controller.text),
-                      level7: _emptyToNull(_level7Controller.text),
-                      instGuide: _emptyToNull(_instGuideController.text),
-                      // ... Set other fields as needed
-                    );
-                    /*      print('Updated Product: $UpdateProductSubmission');*/
+                    if (await hasRole('Admin') || await hasRole('Manager')) {
+                      String encodedComments = base64Encode(
+                          utf8.encode(_commentsController.text));
+                      final productNo = widget.productSubmission.productno ??
+                          (throw 'Product No is null');
+                      final UpdateProductSubmission = ProductSubmission(
+                        rev: _emptyToNull(_revController.text),
+                        description: _emptyToNull(_descriptionController.text),
+                        configuration: _emptyToNull(_configurationController.text),
+                        companyName: _emptyToNull(companyNameController.text),
+                        level1: _emptyToNull(_level1Controller.text),
+                        type: _emptyToNull(_typeController.text),
+                        ecr: _emptyToNull(_ecrController.text),
+                        listprice: _emptyToNull(_listpriceController.text),
+                        comments: _emptyToNull(encodedComments),
+                        active: _emptyToNull(_activeController.text),
+                        labelDesc: _emptyToNull(_labelDescController.text),
+                        productSpec: _emptyToNull(_productSpecController.text),
+                        labelConfig: _emptyToNull(_labelConfigController.text),
+                        dateReq: _emptyToNull(_dateReqController.text),
+                        dateDue: _emptyToNull(_dateDueController.text),
+                        level2: _emptyToNull(_level2Controller.text),
+                        level3: _emptyToNull(_level3Controller.text),
+                        level4: _emptyToNull(_level4Controller.text),
+                        level5: _emptyToNull(_level5Controller.text),
+                        sequenceNum: _emptyToNull(_sequenceNumController.text),
+                        locationWares: _emptyToNull(_locationWaresController.text),
+                        locationAccpac: _emptyToNull(
+                            _locationAccpacController.text),
+                        locationMisys: _emptyToNull(_locationMisysController.text),
+                        level6: _emptyToNull(_level6Controller.text),
+                        level7: _emptyToNull(_level7Controller.text),
+                        instGuide: _emptyToNull(_instGuideController.text),
+                        // ... Set other fields as needed
+                      );
+                      print('Updated Product: $UpdateProductSubmission');
 
 
-                    ref.read(updateProductProvider(
-                        Tuple2(productNo, UpdateProductSubmission)).future).then((
-                        success) async {
-                      if (success) {
-                        final updatedProduct = await ref.read(fetchProductDetailsProvider(productNo).future);
-                        if (widget.onProductUpdated != null) {
-                         widget.onProductUpdated!(updatedProduct);
+                      ref.read(updateProductProvider(
+                          Tuple2(productNo, UpdateProductSubmission)).future).then((
+                          success) async {
+                        if (success) {
+                          final updatedProduct = await ref.read(fetchProductDetailsProvider(productNo).future);
+                          if (widget.onProductUpdated != null) {
+                            widget.onProductUpdated!(updatedProduct);
+                          }
+                          Navigator.of(context).pop('clearProductNumber');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text('Product updated successfully!')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Failed to update product')),
+                          );
                         }
-                        Navigator.of(context).pop('clearProductNumber');
+                      }).catchError((error) {
+                        print('An error occurred: $error');
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Product updated successfully!')),
+                          SnackBar(content: Text(
+                              'An error occurred while updating the product')),
                         );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to update product')),
-                        );
-                      }
-                    }).catchError((error) {
-                      print('An error occurred: $error');
+                      });
+                    }
+                    else {
+                      // User does not have the required role, show an error message
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(
-                            'An error occurred while updating the product')),
+                            'You do not have permission to perform this action')),
                       );
-                    });
-                    /*}
-                else {
-                  // User does not have the required role, show an error message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(
-                        'You do not have permission to perform this action')),
-                  );
-                }*/
+                    }
 
                   },
                   child: Text('Save'),
                 ),
               ],
             ),
+
           ],
+
         );
       },
     );
